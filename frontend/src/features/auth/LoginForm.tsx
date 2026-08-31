@@ -8,9 +8,10 @@ import { ApiError } from "@/lib/api/core";
 import { Alert } from "@/components/ui/Alert";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { IconUser } from "@/components/ui/Icons";
 import styles from "./AuthForm.module.css";
 
-export function LoginForm() {
+export function LoginForm({ initialSuccess }: { initialSuccess?: string | null }) {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -24,14 +25,8 @@ export function LoginForm() {
 
     try {
       await login({ email, password });
-      // Full navigation to a route the (app) layout will render fresh,
-      // reading the just-set auth cookie server-side.
       router.replace("/dashboard");
     } catch (caught) {
-      // The backend intentionally returns the same generic message whether
-      // the email or the password was wrong (docs/decisions.md) — shown
-      // verbatim, not reinterpreted, so the frontend doesn't accidentally
-      // leak a distinction the backend deliberately hides.
       setError(caught instanceof ApiError ? caught.message : "Something went wrong. Please try again.");
     } finally {
       setIsSubmitting(false);
@@ -39,35 +34,49 @@ export function LoginForm() {
   }
 
   return (
-    <form className={styles.form} onSubmit={handleSubmit}>
-      {error && <Alert variant="error">{error}</Alert>}
+    <div>
+      <div className={styles.formHeader}>
+        <div className={styles.iconBadge}>
+          <IconUser size={22} />
+        </div>
+        <h1 className={styles.title}>Sign in to your account</h1>
+        <p className={styles.subtitle}>Enter your company credentials to manage equipment</p>
+      </div>
 
-      <Input
-        label="Email"
-        type="email"
-        name="email"
-        autoComplete="email"
-        required
-        value={email}
-        onChange={(event) => setEmail(event.target.value)}
-      />
-      <Input
-        label="Password"
-        type="password"
-        name="password"
-        autoComplete="current-password"
-        required
-        value={password}
-        onChange={(event) => setPassword(event.target.value)}
-      />
+      <form className={styles.form} onSubmit={handleSubmit} noValidate>
+        {initialSuccess && <Alert variant="success">{initialSuccess}</Alert>}
+        {error && <Alert variant="error">{error}</Alert>}
 
-      <Button type="submit" fullWidth isLoading={isSubmitting}>
-        Sign in
-      </Button>
+        <Input
+          label="Email address"
+          type="email"
+          name="email"
+          autoComplete="email"
+          required
+          placeholder="name@company.com"
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
+        />
 
-      <p className={styles.footer}>
-        Don&apos;t have an account? <Link href="/register">Create one</Link>
-      </p>
-    </form>
+        <Input
+          label="Password"
+          type="password"
+          name="password"
+          autoComplete="current-password"
+          required
+          placeholder="••••••••"
+          value={password}
+          onChange={(event) => setPassword(event.target.value)}
+        />
+
+        <Button type="submit" variant="primary" fullWidth isLoading={isSubmitting} size="lg">
+          Sign in
+        </Button>
+
+        <p className={styles.footer}>
+          Don&apos;t have an account? <Link href="/register">Create an account</Link>
+        </p>
+      </form>
+    </div>
   );
 }

@@ -1,20 +1,11 @@
 import type { Reservation } from "@/types/reservation";
 import { Badge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { IconCalendar, IconEquipment, IconClock, IconUser } from "@/components/ui/Icons";
 import { formatUtc } from "@/lib/format";
 import { statusTone } from "./statusTone";
 import styles from "./ReservationTable.module.css";
 
-/**
- * Read-only listing — no cancel/approve/reject actions yet. Those mutate
- * state (PATCH /reservations/:id/cancel|approve|reject) and belong to a
- * dedicated Reservation feature phase, not this foundation.
- *
- * There is no backend endpoint to resolve a userId/equipmentId to a
- * human-readable name beyond what's already loaded on this page, so
- * `equipmentNameById` is best-effort (falls back to the raw id) and other
- * users are shown as "Another employee" rather than a fabricated name.
- */
 export function ReservationTable({
   reservations,
   currentUserId,
@@ -29,40 +20,119 @@ export function ReservationTable({
   if (reservations.length === 0) {
     return (
       <EmptyState
-        title="No reservations yet"
-        description="Reservations you create will show up here."
+        icon={<IconCalendar size={28} />}
+        title="No reservations on record"
+        description="Bookings created for shared equipment will be listed here with start/end schedules and status tracking."
       />
     );
   }
 
   return (
-    <table className={styles.table}>
-      <thead>
-        <tr>
-          <th>Equipment</th>
-          {showOwner && <th>Booked by</th>}
-          <th>Start</th>
-          <th>End</th>
-          <th>Status</th>
-        </tr>
-      </thead>
-      <tbody>
-        {reservations.map((reservation) => (
-          <tr key={reservation.id}>
-            <td>{equipmentNameById[reservation.equipmentId] ?? reservation.equipmentId}</td>
-            {showOwner && (
-              <td className={styles.muted}>
-                {reservation.userId === currentUserId ? "You" : "Another employee"}
-              </td>
-            )}
-            <td className={styles.muted}>{formatUtc(reservation.startTime)}</td>
-            <td className={styles.muted}>{formatUtc(reservation.endTime)}</td>
-            <td>
-              <Badge tone={statusTone(reservation.status)}>{reservation.status}</Badge>
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
+    <>
+      {/* Desktop Table View */}
+      <div className={styles.tableWrapper}>
+        <table className={styles.table}>
+          <thead>
+            <tr>
+              <th>Equipment</th>
+              {showOwner && <th>Booked By</th>}
+              <th>Start Time (UTC)</th>
+              <th>End Time (UTC)</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {reservations.map((reservation) => {
+              const isCurrentUser = reservation.userId === currentUserId;
+              const equipName = equipmentNameById[reservation.equipmentId] ?? reservation.equipmentId;
+
+              return (
+                <tr key={reservation.id}>
+                  <td>
+                    <div className={styles.equipmentCell}>
+                      <div className={styles.equipmentIconBox}>
+                        <IconEquipment size={16} />
+                      </div>
+                      <span className={styles.equipmentName}>{equipName}</span>
+                    </div>
+                  </td>
+
+                  {showOwner && (
+                    <td>
+                      <div className={styles.userCell}>
+                        <IconUser size={14} style={{ opacity: 0.7 }} />
+                        <span>{isCurrentUser ? "You" : "Another employee"}</span>
+                      </div>
+                    </td>
+                  )}
+
+                  <td>
+                    <div className={styles.timeCell}>
+                      <IconClock size={14} className={styles.timeIcon} />
+                      <span>{formatUtc(reservation.startTime)}</span>
+                    </div>
+                  </td>
+
+                  <td>
+                    <div className={styles.timeCell}>
+                      <IconClock size={14} className={styles.timeIcon} />
+                      <span>{formatUtc(reservation.endTime)}</span>
+                    </div>
+                  </td>
+
+                  <td>
+                    <Badge tone={statusTone(reservation.status)}>
+                      {reservation.status}
+                    </Badge>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Mobile Card List View */}
+      <div className={styles.mobileCardList}>
+        {reservations.map((reservation) => {
+          const isCurrentUser = reservation.userId === currentUserId;
+          const equipName = equipmentNameById[reservation.equipmentId] ?? reservation.equipmentId;
+
+          return (
+            <div key={reservation.id} className={styles.mobileCard}>
+              <div className={styles.mobileCardHeader}>
+                <div className={styles.equipmentCell}>
+                  <div className={styles.equipmentIconBox}>
+                    <IconEquipment size={16} />
+                  </div>
+                  <span className={styles.equipmentName}>{equipName}</span>
+                </div>
+                <Badge tone={statusTone(reservation.status)}>
+                  {reservation.status}
+                </Badge>
+              </div>
+
+              {showOwner && (
+                <div className={styles.userCell} style={{ fontSize: "0.8125rem" }}>
+                  <IconUser size={14} style={{ opacity: 0.7 }} />
+                  <span>Booked by: <strong>{isCurrentUser ? "You" : "Another employee"}</strong></span>
+                </div>
+              )}
+
+              <div className={styles.mobileCardTimes}>
+                <div className={styles.timeRow}>
+                  <span className={styles.timeLabel}>Start:</span>
+                  <span className={styles.timeValue}>{formatUtc(reservation.startTime)}</span>
+                </div>
+                <div className={styles.timeRow}>
+                  <span className={styles.timeLabel}>End:</span>
+                  <span className={styles.timeValue}>{formatUtc(reservation.endTime)}</span>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </>
   );
 }

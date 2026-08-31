@@ -3,13 +3,8 @@
 import { useEffect } from "react";
 import { Alert } from "@/components/ui/Alert";
 import { Button } from "@/components/ui/Button";
+import { IconAlertCircle } from "@/components/ui/Icons";
 
-/**
- * Root error boundary (Next.js file convention — must be a Client
- * Component). Catches unexpected rendering/data errors anywhere in the
- * tree that weren't already handled locally (API calls in pages already
- * catch `ApiError` and render an inline `<Alert>` instead of throwing).
- */
 export default function GlobalError({
   error,
   reset,
@@ -18,15 +13,81 @@ export default function GlobalError({
   reset: () => void;
 }) {
   useEffect(() => {
-    // Intentionally console-only: no error-reporting service is wired up
-    // in this phase, and no internal detail is shown to the user below.
     console.error(error);
   }, [error]);
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "1rem", padding: "2rem", maxWidth: "480px", margin: "0 auto" }}>
-      <Alert variant="error">Something went wrong. Please try again.</Alert>
-      <Button onClick={reset}>Try again</Button>
+    <div
+      style={{
+        minHeight: "100vh",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "2rem",
+        backgroundColor: "var(--background)",
+      }}
+    >
+      <div
+        style={{
+          width: "100%",
+          maxWidth: "460px",
+          display: "flex",
+          flexDirection: "column",
+          gap: "1.5rem",
+          backgroundColor: "var(--surface)",
+          border: "1px solid var(--color-border)",
+          borderRadius: "var(--radius-xl)",
+          padding: "2rem",
+          boxShadow: "var(--shadow-md)",
+          textAlign: "center",
+          alignItems: "center",
+        }}
+      >
+        <div
+          style={{
+            width: "48px",
+            height: "48px",
+            borderRadius: "var(--radius-full)",
+            backgroundColor: "var(--color-danger-bg)",
+            border: "1px solid var(--color-danger-border)",
+            color: "var(--color-danger)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <IconAlertCircle size={24} />
+        </div>
+
+        <div>
+          <h1
+            style={{
+              fontSize: "1.25rem",
+              fontWeight: 700,
+              color: "var(--foreground)",
+              marginBottom: "0.5rem",
+            }}
+          >
+            Unexpected Application Error
+          </h1>
+          <p
+            style={{
+              fontSize: "0.875rem",
+              color: "var(--foreground-muted)",
+              lineHeight: 1.5,
+            }}
+          >
+            An unexpected error occurred while rendering this page. You can try refreshing or clicking below.
+          </p>
+        </div>
+
+        <Alert variant="error">Something went wrong. Please try again.</Alert>
+
+        <Button onClick={reset} variant="primary" fullWidth size="lg">
+          Try again
+        </Button>
+      </div>
     </div>
   );
 }
