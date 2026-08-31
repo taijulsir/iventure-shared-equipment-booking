@@ -2,19 +2,40 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--space-2);
+  justify-content: center;
   text-align: center;
-  padding: var(--space-6) var(--space-4);
-  color: var(--color-text-muted);
+  padding: var(--space-10) var(--space-6);
+  color: var(--foreground-muted);
+}
+
+.iconContainer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-full);
+  background-color: var(--surface-muted);
+  border: 1px solid var(--color-border);
+  color: var(--foreground-secondary);
+  margin-bottom: var(--space-4);
 }
 
 .title {
   font-size: 1rem;
   font-weight: 600;
-  color: var(--color-text);
+  color: var(--foreground);
+  margin-bottom: 4px;
 }
 
 .description {
   font-size: 0.875rem;
-  max-width: 32ch;
+  color: var(--foreground-muted);
+  max-width: 42ch;
+  line-height: 1.4;
+  margin-bottom: var(--space-4);
+}
+
+.actionArea {
+  margin-top: var(--space-2);
 }

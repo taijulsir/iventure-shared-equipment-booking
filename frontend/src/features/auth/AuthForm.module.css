@@ -1,3 +1,38 @@
+.formHeader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  margin-bottom: var(--space-6);
+  gap: var(--space-1);
+}
+
+.iconBadge {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-md);
+  background-color: var(--surface-subtle);
+  border: 1px solid var(--color-border-accent);
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: var(--space-3);
+}
+
+.title {
+  font-size: 1.375rem;
+  font-weight: 700;
+  color: var(--foreground);
+  letter-spacing: -0.02em;
+}
+
+.subtitle {
+  font-size: 0.875rem;
+  color: var(--foreground-muted);
+  line-height: 1.4;
+}
+
 .form {
   display: flex;
   flex-direction: column;
@@ -5,12 +40,22 @@
 }
 
 .footer {
+  margin-top: var(--space-4);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border);
   font-size: 0.875rem;
-  color: var(--color-text-muted);
+  color: var(--foreground-muted);
   text-align: center;
 }
 
 .footer a {
   color: var(--color-primary);
-  font-weight: 500;
+  font-weight: 600;
+  margin-left: 4px;
+  transition: color var(--transition-fast);
+}
+
+.footer a:hover {
+  color: var(--color-primary-hover);
+  text-decoration: underline;
 }

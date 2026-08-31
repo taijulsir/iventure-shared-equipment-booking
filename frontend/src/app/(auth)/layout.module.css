@@ -1,21 +1,63 @@
 .wrapper {
-  min-height: 100%;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--background);
+}
+
+.topBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4) var(--space-6);
+  max-width: 1200px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.brandLink {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  text-decoration: none;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--foreground);
+}
+
+.mainArea {
+  flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: var(--space-5);
+  padding: var(--space-6) var(--space-4) var(--space-12);
 }
 
-.card {
+.authCardWrapper {
   width: 100%;
-  max-width: 400px;
+  max-width: 440px;
+}
+
+.authCard {
+  background-color: var(--surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  padding: var(--space-8) var(--space-8);
+  box-shadow: var(--shadow-md);
+}
+
+.brandHeader {
   display: flex;
   flex-direction: column;
-  gap: var(--space-5);
+  align-items: center;
+  text-align: center;
+  margin-bottom: var(--space-6);
+  gap: var(--space-2);
 }
 
-.title {
-  font-size: 1.375rem;
-  font-weight: 700;
-  text-align: center;
+@media (max-width: 480px) {
+  .authCard {
+    padding: var(--space-6) var(--space-5);
+    border-radius: var(--radius-lg);
+  }
 }

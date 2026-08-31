@@ -1,18 +1,75 @@
 .page {
   display: flex;
   flex-direction: column;
+  gap: var(--space-6);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: var(--space-5);
+}
+
+.adminCard {
+  background-color: var(--surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  display: flex;
+  flex-direction: column;
   gap: var(--space-4);
+  box-shadow: var(--shadow-xs);
 }
 
-.title {
-  font-size: 1.5rem;
-  font-weight: 700;
+.cardHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
 }
 
-.list {
-  padding-left: var(--space-5);
-  color: var(--color-text-muted);
+.iconBox {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  background-color: var(--surface-subtle);
+  border: 1px solid var(--color-border-accent);
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.cardTitle {
+  font-size: 1.0625rem;
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+.cardDescription {
+  font-size: 0.875rem;
+  color: var(--foreground-secondary);
+  line-height: 1.5;
+}
+
+.featureList {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
+  padding: var(--space-3);
+  background-color: var(--surface-muted);
+  border-radius: var(--radius-md);
+}
+
+.featureItem {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 0.8125rem;
+  color: var(--foreground-secondary);
+}
+
+.featureIcon {
+  color: var(--color-primary);
+  flex-shrink: 0;
 }

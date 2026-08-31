@@ -4,16 +4,13 @@ import { listReservations } from "@/lib/api/reservations";
 import { listEquipment } from "@/lib/api/equipment";
 import { ApiError } from "@/lib/api/core";
 import type { Reservation } from "@/types/reservation";
-import { Card } from "@/components/ui/Card";
 import { Alert } from "@/components/ui/Alert";
+import { Badge } from "@/components/ui/Badge";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { ReservationTable } from "@/features/reservations/ReservationTable";
 import styles from "./page.module.css";
 
 export default async function ReservationsPage() {
-  // The (app) layout already redirects unauthenticated visitors; this
-  // second check just gets us the user's id/role for this page's own
-  // needs (see reservation.service.ts, findAllForUser — the backend
-  // already scopes the list by role, this is only for display labeling).
   const user = await getServerSession();
   if (!user) {
     redirect("/login");
@@ -29,9 +26,6 @@ export default async function ReservationsPage() {
   try {
     const [reservationList, equipmentPage] = await Promise.all([
       listReservations(cookieHeader),
-      // A single page of equipment is enough to label the (currently
-      // small) set of reservations created in this foundation phase; a
-      // full lookup across a large catalogue is a later-phase concern.
       listEquipment({ limit: 100 }, cookieHeader),
     ]);
     reservations = reservationList;
@@ -41,20 +35,39 @@ export default async function ReservationsPage() {
       error instanceof ApiError ? error.message : "Something went wrong loading reservations.";
   }
 
+  const count = reservations ? reservations.length : 0;
+
   return (
     <div className={styles.page}>
-      <h1 className={styles.title}>{isAdmin ? "Reservations" : "My Reservations"}</h1>
+      <PageHeader
+        title={isAdmin ? "All Company Reservations" : "My Reservations"}
+        subtitle={
+          isAdmin
+            ? "Monitor active and upcoming reservations across every team member."
+            : "Review your equipment schedules, approval progress, and active bookings."
+        }
+        badge={
+          reservations && (
+            <Badge tone="neutral" showDot={false}>
+              {count} {count === 1 ? "Booking" : "Bookings"}
+            </Badge>
+          )
+        }
+      />
+
       {errorMessage ? (
-        <Alert variant="error">{errorMessage}</Alert>
+        <Alert variant="error" title="Failed to load reservations">
+          {errorMessage}
+        </Alert>
       ) : (
-        <Card>
+        <div className={styles.tableCard}>
           <ReservationTable
             reservations={reservations ?? []}
             currentUserId={user.id}
             equipmentNameById={equipmentNameById}
             showOwner={isAdmin}
           />
-        </Card>
+        </div>
       )}
     </div>
   );

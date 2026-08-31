@@ -2,8 +2,9 @@ import { getRequestCookieHeader } from "@/lib/api/server-session";
 import { listEquipment } from "@/lib/api/equipment";
 import { ApiError } from "@/lib/api/core";
 import type { Equipment } from "@/types/equipment";
-import { Card } from "@/components/ui/Card";
 import { Alert } from "@/components/ui/Alert";
+import { Badge } from "@/components/ui/Badge";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { EquipmentTable } from "@/features/equipment/EquipmentTable";
 import styles from "./page.module.css";
 
@@ -21,15 +22,30 @@ export default async function EquipmentPage() {
       error instanceof ApiError ? error.message : "Something went wrong loading the equipment list.";
   }
 
+  const count = equipment ? equipment.length : 0;
+
   return (
     <div className={styles.page}>
-      <h1 className={styles.title}>Equipment</h1>
+      <PageHeader
+        title="Equipment Catalogue"
+        subtitle="Browse shared enterprise equipment, review specifications, and check booking policies."
+        badge={
+          equipment && (
+            <Badge tone="neutral" showDot={false}>
+              {count} {count === 1 ? "Item" : "Items"}
+            </Badge>
+          )
+        }
+      />
+
       {errorMessage ? (
-        <Alert variant="error">{errorMessage}</Alert>
+        <Alert variant="error" title="Failed to load equipment">
+          {errorMessage}
+        </Alert>
       ) : (
-        <Card>
+        <div className={styles.tableCard}>
           <EquipmentTable equipment={equipment ?? []} />
-        </Card>
+        </div>
       )}
     </div>
   );

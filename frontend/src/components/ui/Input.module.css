@@ -1,34 +1,86 @@
 .field {
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
+  gap: 6px;
+  width: 100%;
+}
+
+.labelRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .label {
   font-size: 0.875rem;
   font-weight: 500;
-  color: var(--color-text);
+  color: var(--foreground);
+  letter-spacing: -0.01em;
+}
+
+.helperText {
+  font-size: 0.8125rem;
+  color: var(--foreground-muted);
+}
+
+.inputWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
 }
 
 .input {
+  width: 100%;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  padding: var(--space-2) var(--space-3);
+  padding: 10px 14px;
   font-size: 0.9375rem;
-  background-color: var(--color-surface);
-  color: var(--color-text);
+  line-height: 1.35rem;
+  background-color: var(--surface);
+  color: var(--foreground);
+  box-shadow: var(--shadow-xs);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background-color var(--transition-fast);
+}
+
+.input::placeholder {
+  color: var(--foreground-muted);
+  opacity: 0.8;
+}
+
+.input:hover:not(:disabled):not(:focus) {
+  border-color: var(--color-border-hover);
 }
 
 .input:focus {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 1px;
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-focus);
+}
+
+.input:disabled {
+  background-color: var(--surface-muted);
+  cursor: not-allowed;
+  opacity: 0.7;
 }
 
 .inputError {
-  border-color: var(--color-danger);
+  border-color: var(--color-danger) !important;
+}
+
+.inputError:focus {
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.2) !important;
+}
+
+.errorRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
 }
 
 .errorText {
   font-size: 0.8125rem;
+  font-weight: 500;
   color: var(--color-danger);
 }

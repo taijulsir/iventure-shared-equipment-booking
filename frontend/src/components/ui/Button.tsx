@@ -4,7 +4,8 @@ import styles from "./Button.module.css";
 import { Spinner } from "./Spinner";
 
 type BaseButtonProps = {
-  variant?: "primary" | "secondary" | "danger";
+  variant?: "primary" | "secondary" | "outline" | "ghost" | "danger";
+  size?: "sm" | "md" | "lg";
   fullWidth?: boolean;
   isLoading?: boolean;
   disabled?: boolean;
@@ -22,9 +23,9 @@ export type ButtonProps =
         href: string;
       });
 
-
 export function Button({
   variant = "primary",
+  size = "md",
   fullWidth = false,
   isLoading = false,
   disabled,
@@ -33,7 +34,13 @@ export function Button({
   href,
   ...rest
 }: ButtonProps) {
-  const classNames = [styles.button, styles[variant], fullWidth ? styles.fullWidth : "", className]
+  const classNames = [
+    styles.button,
+    styles[variant],
+    size !== "md" ? styles[size] : "",
+    fullWidth ? styles.fullWidth : "",
+    className,
+  ]
     .filter(Boolean)
     .join(" ");
 
@@ -55,4 +62,3 @@ export function Button({
     </button>
   );
 }
-
