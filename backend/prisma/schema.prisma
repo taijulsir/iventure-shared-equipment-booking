@@ -1,8 +1,6 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
   provider = "prisma-client"
   output   = "../src/generated/prisma"
@@ -10,4 +8,86 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+}
+
+// -----------------------------------------------------------------------------
+// Enums
+// -----------------------------------------------------------------------------
+
+enum Role {
+  EMPLOYEE
+  ADMIN
+}
+
+enum ReservationStatus {
+  PENDING
+  CONFIRMED
+  REJECTED
+  CANCELLED
+}
+
+// -----------------------------------------------------------------------------
+// Models
+// -----------------------------------------------------------------------------
+
+model User {
+  id           String   @id @default(uuid()) @db.Uuid
+  name         String
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  // Defaults to EMPLOYEE: the schema never defaults a new account to ADMIN.
+  // Administrator accounts are provisioned separately (see docs/decisions.md,
+  // "Administrator Account Provisioning") rather than through a client-controlled
+  // value at creation time.
+  role         Role     @default(EMPLOYEE)
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  reservations Reservation[]
+
+  @@map("users")
+}
+
+model Equipment {
+  id               String   @id @default(uuid()) @db.Uuid
+  name             String
+  description      String?
+  // Availability is derived from reservation conflicts for a requested time
+  // window, not stored as a static flag — see docs/requirements.md.
+  requiresApproval Boolean  @default(false) @map("requires_approval")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  reservations Reservation[]
+
+  @@map("equipment")
+}
+
+model Reservation {
+  id          String @id @default(uuid()) @db.Uuid
+  userId      String @map("user_id") @db.Uuid
+  equipmentId String @map("equipment_id") @db.Uuid
+
+  // Stored and compared in UTC (docs/decisions.md, "Reservation Timestamp
+  // Timezone"). Plain `timestamp` (no time zone) intentionally matches the
+  // `tsrange` range type used by the PostgreSQL EXCLUDE constraint added in
+  // migration SQL — see that migration for the overlap-prevention guarantee.
+  startTime DateTime @map("start_time") @db.Timestamp(3)
+  endTime   DateTime @map("end_time") @db.Timestamp(3)
+
+  status    ReservationStatus @default(PENDING)
+  createdAt DateTime          @default(now()) @map("created_at")
+  updatedAt DateTime          @updatedAt @map("updated_at")
+
+  // onDelete: Restrict — a user or piece of equipment with reservation history
+  // (of any status) cannot be hard-deleted while that history still references
+  // it. This preserves the booking record and prevents orphaned reservations;
+  // see docs/decisions.md and the migration report for the full rationale.
+  user      User      @relation(fields: [userId], references: [id], onDelete: Restrict)
+  equipment Equipment @relation(fields: [equipmentId], references: [id], onDelete: Restrict)
+
+  @@index([userId])
+  @@index([equipmentId])
+  @@index([status])
+  @@map("reservations")
 }
