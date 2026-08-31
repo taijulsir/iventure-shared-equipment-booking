@@ -221,4 +221,94 @@ export class ReservationService {
       throw error;
     }
   }
+
+  /**
+   * Approves a PENDING reservation (docs/decisions.md, "Reservation Status
+   * Model": PENDING -> CONFIRMED). Administrator-only at the route level
+   * (@Roles(Role.ADMIN)) — this is a management action over *any*
+   * approval-required reservation, not an ownership-bounded one, so unlike
+   * `findOne`/`cancel` there is no OwnershipService call here: an
+   * Administrator is not "exempt from ownership," ownership simply doesn't
+   * apply to this action (mirrors how EquipmentController's admin-only
+   * write routes have no ownership concept either).
+   */
+  async approve(id: string): Promise<Reservation> {
+    const reservation = await this.prisma.reservation.findUnique({ where: { id } });
+    if (!reservation) {
+      throw new NotFoundException('Reservation not found');
+    }
+
+    if (reservation.status !== ReservationStatus.PENDING) {
+      throw new ConflictException(
+        `A reservation with status ${reservation.status} cannot be approved`,
+      );
+    }
+
+    try {
+      return await this.prisma.reservation.update({
+        where: { id },
+        data: { status: ReservationStatus.CONFIRMED },
+      });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (error.code === PRISMA_ERROR_RECORD_NOT_FOUND) {
+          throw new NotFoundException('Reservation not found');
+        }
+        // Defense in depth (docs/decisions.md, "Approval must not bypass
+        // database-level overlap protection"): PENDING reservations already
+        // participate in the EXCLUDE constraint's WHERE clause alongside
+        // CONFIRMED ones, so a PENDING row already holds its slot exclusively
+        // from creation — moving it to CONFIRMED does not change its
+        // membership in that constraint and cannot newly conflict with
+        // another active reservation under the current schema. This catch
+        // exists so that guarantee is enforced by the database, not merely
+        // assumed by this reasoning, and so the API never surfaces a raw
+        // constraint error if that assumption is ever invalidated.
+        if (this.isExclusionViolation(error)) {
+          throw new ConflictException(
+            'This reservation conflicts with another active reservation for the same equipment',
+          );
+        }
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Rejects a PENDING reservation (docs/decisions.md, "Reservation Status
+   * Model": PENDING -> REJECTED). Administrator-only, same reasoning as
+   * `approve()` above regarding the absence of an ownership check.
+   *
+   * No EXCLUDE-violation handling is needed here: REJECTED is excluded from
+   * the constraint's WHERE clause, so this transition only ever removes the
+   * reservation from the set of active (slot-blocking) reservations — it
+   * can free up a conflict, never create one.
+   */
+  async reject(id: string): Promise<Reservation> {
+    const reservation = await this.prisma.reservation.findUnique({ where: { id } });
+    if (!reservation) {
+      throw new NotFoundException('Reservation not found');
+    }
+
+    if (reservation.status !== ReservationStatus.PENDING) {
+      throw new ConflictException(
+        `A reservation with status ${reservation.status} cannot be rejected`,
+      );
+    }
+
+    try {
+      return await this.prisma.reservation.update({
+        where: { id },
+        data: { status: ReservationStatus.REJECTED },
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === PRISMA_ERROR_RECORD_NOT_FOUND
+      ) {
+        throw new NotFoundException('Reservation not found');
+      }
+      throw error;
+    }
+  }
 }

@@ -21,15 +21,17 @@ import { CreateReservationDto } from './dto/create-reservation.dto.js';
 
 /**
  * Every route requires authentication (JwtAuthGuard). RolesGuard is applied
- * controller-wide too, but only creation and cancellation carry
- * @Roles(Role.EMPLOYEE) — per docs/requirements.md and docs/decisions.md,
- * "create reservation" and "cancel own reservation" are documented Employee
- * capabilities, and Administrator's documented scope (view all
- * reservations, manage approval-required reservations) does not include
- * either. GET routes carry no @Roles(...): both roles may read, and
- * ReservationService enforces the ownership boundary within them
+ * controller-wide too, but only creation/cancellation carry
+ * @Roles(Role.EMPLOYEE) and approval/rejection carry @Roles(Role.ADMIN) —
+ * per docs/requirements.md and docs/decisions.md, "create reservation" and
+ * "cancel own reservation" are documented Employee capabilities, while
+ * "manage reservations that require administrator approval" is a documented
+ * Administrator capability. GET routes carry no @Roles(...): both roles may
+ * read, and ReservationService enforces the ownership boundary within them
  * (see reservation.service.ts) — RBAC and ownership are kept separate, as
- * documented.
+ * documented. Approve/reject have no ownership check at all (see
+ * reservation.service.ts) since they are administrator-management actions,
+ * not ownership-bounded ones.
  */
 @Controller('reservations')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -66,5 +68,17 @@ export class ReservationController {
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<Reservation> {
     return this.reservationService.cancel(req.user, id);
+  }
+
+  @Patch(':id/approve')
+  @Roles(Role.ADMIN)
+  approve(@Param('id', ParseUUIDPipe) id: string): Promise<Reservation> {
+    return this.reservationService.approve(id);
+  }
+
+  @Patch(':id/reject')
+  @Roles(Role.ADMIN)
+  reject(@Param('id', ParseUUIDPipe) id: string): Promise<Reservation> {
+    return this.reservationService.reject(id);
   }
 }

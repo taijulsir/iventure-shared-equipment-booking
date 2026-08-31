@@ -433,4 +433,216 @@ describe('Reservation (e2e)', () => {
         .expect(404);
     });
   });
+
+  describe('approval workflow', () => {
+    it('rejects Employee approving a reservation with 403', async () => {
+      const created = await agentEmployeeA
+        .post('/reservations')
+        .send({
+          equipmentId: equipmentRequiresApprovalId,
+          startTime: '2027-03-01T10:00:00.000Z',
+          endTime: '2027-03-01T12:00:00.000Z',
+        })
+        .expect(201);
+      expect(created.body.status).toBe('PENDING');
+
+      await agentEmployeeA.patch(`/reservations/${created.body.id}/approve`).expect(403);
+    });
+
+    it('rejects Employee rejecting a reservation with 403', async () => {
+      const created = await agentEmployeeA
+        .post('/reservations')
+        .send({
+          equipmentId: equipmentRequiresApprovalId,
+          startTime: '2027-03-02T10:00:00.000Z',
+          endTime: '2027-03-02T12:00:00.000Z',
+        })
+        .expect(201);
+
+      await agentEmployeeA.patch(`/reservations/${created.body.id}/reject`).expect(403);
+    });
+
+    it('allows Administrator to approve a PENDING reservation, moving it to CONFIRMED', async () => {
+      const created = await agentEmployeeA
+        .post('/reservations')
+        .send({
+          equipmentId: equipmentRequiresApprovalId,
+          startTime: '2027-03-03T10:00:00.000Z',
+          endTime: '2027-03-03T12:00:00.000Z',
+        })
+        .expect(201);
+      expect(created.body.status).toBe('PENDING');
+
+      const response = await agentAdmin
+        .patch(`/reservations/${created.body.id}/approve`)
+        .expect(200);
+      expect(response.body.status).toBe('CONFIRMED');
+
+      const fetched = await agentEmployeeA.get(`/reservations/${created.body.id}`).expect(200);
+      expect(fetched.body.status).toBe('CONFIRMED');
+    });
+
+    it('allows Administrator to reject a PENDING reservation, moving it to REJECTED', async () => {
+      const created = await agentEmployeeA
+        .post('/reservations')
+        .send({
+          equipmentId: equipmentRequiresApprovalId,
+          startTime: '2027-03-04T10:00:00.000Z',
+          endTime: '2027-03-04T12:00:00.000Z',
+        })
+        .expect(201);
+
+      const response = await agentAdmin
+        .patch(`/reservations/${created.body.id}/reject`)
+        .expect(200);
+      expect(response.body.status).toBe('REJECTED');
+    });
+
+    it('returns 404 when approving a non-existent reservation', async () => {
+      await agentAdmin
+        .patch('/reservations/00000000-0000-0000-0000-000000000000/approve')
+        .expect(404);
+    });
+
+    it('returns 404 when rejecting a non-existent reservation', async () => {
+      await agentAdmin
+        .patch('/reservations/00000000-0000-0000-0000-000000000000/reject')
+        .expect(404);
+    });
+
+    it('rejects approving a reservation that is already CONFIRMED', async () => {
+      const created = await agentEmployeeA
+        .post('/reservations')
+        .send({
+          equipmentId: equipmentNoApprovalId, // CONFIRMED immediately, no approval needed
+          startTime: '2027-03-05T10:00:00.000Z',
+          endTime: '2027-03-05T12:00:00.000Z',
+        })
+        .expect(201);
+      expect(created.body.status).toBe('CONFIRMED');
+
+      await agentAdmin.patch(`/reservations/${created.body.id}/approve`).expect(409);
+    });
+
+    it('rejects approving a reservation that is already REJECTED', async () => {
+      const created = await agentEmployeeA
+        .post('/reservations')
+        .send({
+          equipmentId: equipmentRequiresApprovalId,
+          startTime: '2027-03-06T10:00:00.000Z',
+          endTime: '2027-03-06T12:00:00.000Z',
+        })
+        .expect(201);
+      await agentAdmin.patch(`/reservations/${created.body.id}/reject`).expect(200);
+
+      await agentAdmin.patch(`/reservations/${created.body.id}/approve`).expect(409);
+    });
+
+    it('rejects approving a reservation that is already CANCELLED', async () => {
+      const created = await agentEmployeeA
+        .post('/reservations')
+        .send({
+          equipmentId: equipmentRequiresApprovalId,
+          startTime: '2027-03-07T10:00:00.000Z',
+          endTime: '2027-03-07T12:00:00.000Z',
+        })
+        .expect(201);
+      await agentEmployeeA.patch(`/reservations/${created.body.id}/cancel`).expect(200);
+
+      await agentAdmin.patch(`/reservations/${created.body.id}/approve`).expect(409);
+    });
+
+    it('rejects rejecting a reservation that is already CONFIRMED', async () => {
+      const created = await agentEmployeeA
+        .post('/reservations')
+        .send({
+          equipmentId: equipmentRequiresApprovalId,
+          startTime: '2027-03-08T10:00:00.000Z',
+          endTime: '2027-03-08T12:00:00.000Z',
+        })
+        .expect(201);
+      await agentAdmin.patch(`/reservations/${created.body.id}/approve`).expect(200);
+
+      await agentAdmin.patch(`/reservations/${created.body.id}/reject`).expect(409);
+    });
+
+    it('rejects rejecting a reservation that is already REJECTED', async () => {
+      const created = await agentEmployeeA
+        .post('/reservations')
+        .send({
+          equipmentId: equipmentRequiresApprovalId,
+          startTime: '2027-03-09T10:00:00.000Z',
+          endTime: '2027-03-09T12:00:00.000Z',
+        })
+        .expect(201);
+      await agentAdmin.patch(`/reservations/${created.body.id}/reject`).expect(200);
+
+      await agentAdmin.patch(`/reservations/${created.body.id}/reject`).expect(409);
+    });
+
+    it('rejects rejecting a reservation that is already CANCELLED', async () => {
+      const created = await agentEmployeeA
+        .post('/reservations')
+        .send({
+          equipmentId: equipmentRequiresApprovalId,
+          startTime: '2027-03-10T10:00:00.000Z',
+          endTime: '2027-03-10T12:00:00.000Z',
+        })
+        .expect(201);
+      await agentEmployeeA.patch(`/reservations/${created.body.id}/cancel`).expect(200);
+
+      await agentAdmin.patch(`/reservations/${created.body.id}/reject`).expect(409);
+    });
+
+    it('a rejected reservation does not retain an active slot conflict — the freed time can be booked again', async () => {
+      const rejected = await agentEmployeeA
+        .post('/reservations')
+        .send({
+          equipmentId: equipmentRequiresApprovalId,
+          startTime: '2027-03-11T10:00:00.000Z',
+          endTime: '2027-03-11T12:00:00.000Z',
+        })
+        .expect(201);
+
+      await agentAdmin.patch(`/reservations/${rejected.body.id}/reject`).expect(200);
+
+      // Same equipment, the exact same time range the rejected reservation
+      // held — this must succeed because REJECTED never blocks a slot.
+      const secondAttempt = await agentEmployeeB
+        .post('/reservations')
+        .send({
+          equipmentId: equipmentRequiresApprovalId,
+          startTime: '2027-03-11T10:00:00.000Z',
+          endTime: '2027-03-11T12:00:00.000Z',
+        })
+        .expect(201);
+      expect(secondAttempt.body.status).toBe('PENDING');
+    });
+
+    it('an approved (CONFIRMED) reservation still blocks the slot for a new overlapping request', async () => {
+      const approved = await agentEmployeeA
+        .post('/reservations')
+        .send({
+          equipmentId: equipmentRequiresApprovalId,
+          startTime: '2027-03-12T10:00:00.000Z',
+          endTime: '2027-03-12T12:00:00.000Z',
+        })
+        .expect(201);
+      await agentAdmin.patch(`/reservations/${approved.body.id}/approve`).expect(200);
+
+      await agentEmployeeB
+        .post('/reservations')
+        .send({
+          equipmentId: equipmentRequiresApprovalId,
+          startTime: '2027-03-12T11:00:00.000Z',
+          endTime: '2027-03-12T13:00:00.000Z',
+        })
+        .expect(409);
+    });
+
+    it('rejects a malformed reservation id on approve/reject with 400', async () => {
+      await agentAdmin.patch('/reservations/not-a-uuid/approve').expect(400);
+      await agentAdmin.patch('/reservations/not-a-uuid/reject').expect(400);
+    });
+  });
 });
