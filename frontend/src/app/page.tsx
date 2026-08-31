@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getServerSession } from "@/lib/api/server-session";
 import { Button } from "@/components/ui/Button";
@@ -18,13 +17,14 @@ export default async function Home() {
         create an account to get started.
       </p>
       <div className={styles.actions}>
-        <Link href="/login">
-          <Button variant="primary">Sign in</Button>
-        </Link>
-        <Link href="/register">
-          <Button variant="secondary">Create account</Button>
-        </Link>
+        <Button href="/login" variant="primary">
+          Sign in
+        </Button>
+        <Button href="/register" variant="secondary">
+          Create account
+        </Button>
       </div>
     </div>
   );
 }
+
