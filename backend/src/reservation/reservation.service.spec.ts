@@ -232,6 +232,26 @@ describe('ReservationService', () => {
         }),
       ).rejects.toBe(unrelated);
     });
+
+    it('checks conflicts only against PENDING/CONFIRMED reservations, so a REJECTED reservation never blocks the slot', async () => {
+      prisma.equipment.findUnique.mockResolvedValue(equipmentNoApproval);
+      prisma.reservation.findFirst.mockResolvedValue(null);
+      prisma.reservation.create.mockResolvedValue(sampleReservation());
+
+      await reservationService.create(employee, {
+        equipmentId: equipmentNoApproval.id,
+        startTime: '2027-01-01T10:00:00.000Z',
+        endTime: '2027-01-01T12:00:00.000Z',
+      });
+
+      expect(prisma.reservation.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            status: { in: [ReservationStatus.PENDING, ReservationStatus.CONFIRMED] },
+          }),
+        }),
+      );
+    });
   });
 
   describe('findAllForUser', () => {
@@ -379,6 +399,136 @@ describe('ReservationService', () => {
       await expect(reservationService.cancel(employee, reservation.id)).rejects.toBeInstanceOf(
         NotFoundException,
       );
+    });
+  });
+
+  describe('approve', () => {
+    it('approves a PENDING reservation, transitioning it to CONFIRMED', async () => {
+      const reservation = sampleReservation({ status: ReservationStatus.PENDING });
+      prisma.reservation.findUnique.mockResolvedValue(reservation);
+      prisma.reservation.update.mockResolvedValue({
+        ...reservation,
+        status: ReservationStatus.CONFIRMED,
+      });
+
+      const result = await reservationService.approve(reservation.id);
+
+      expect(prisma.reservation.update).toHaveBeenCalledWith({
+        where: { id: reservation.id },
+        data: { status: ReservationStatus.CONFIRMED },
+      });
+      expect(result.status).toBe(ReservationStatus.CONFIRMED);
+    });
+
+    it('throws NotFoundException when the reservation does not exist', async () => {
+      prisma.reservation.findUnique.mockResolvedValue(null);
+
+      await expect(reservationService.approve('missing')).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
+      expect(prisma.reservation.update).not.toHaveBeenCalled();
+    });
+
+    it.each([ReservationStatus.CONFIRMED, ReservationStatus.REJECTED, ReservationStatus.CANCELLED])(
+      'rejects approving a reservation that is already %s',
+      async (status) => {
+        const reservation = sampleReservation({ status });
+        prisma.reservation.findUnique.mockResolvedValue(reservation);
+
+        await expect(reservationService.approve(reservation.id)).rejects.toBeInstanceOf(
+          ConflictException,
+        );
+        expect(prisma.reservation.update).not.toHaveBeenCalled();
+      },
+    );
+
+    it('translates a database EXCLUDE-constraint violation into a 409, not a raw DB error', async () => {
+      const reservation = sampleReservation({ status: ReservationStatus.PENDING });
+      prisma.reservation.findUnique.mockResolvedValue(reservation);
+      prisma.reservation.update.mockRejectedValue(exclusionViolationError());
+
+      await expect(reservationService.approve(reservation.id)).rejects.toBeInstanceOf(
+        ConflictException,
+      );
+    });
+
+    it('surfaces a 404 if the reservation is deleted between the lookup and the update (P2025)', async () => {
+      const reservation = sampleReservation({ status: ReservationStatus.PENDING });
+      prisma.reservation.findUnique.mockResolvedValue(reservation);
+      prisma.reservation.update.mockRejectedValue(recordNotFoundError());
+
+      await expect(reservationService.approve(reservation.id)).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
+    });
+
+    it('re-throws an unrelated database error unchanged', async () => {
+      const reservation = sampleReservation({ status: ReservationStatus.PENDING });
+      prisma.reservation.findUnique.mockResolvedValue(reservation);
+      const unrelated = new Error('totally unrelated failure');
+      prisma.reservation.update.mockRejectedValue(unrelated);
+
+      await expect(reservationService.approve(reservation.id)).rejects.toBe(unrelated);
+    });
+  });
+
+  describe('reject', () => {
+    it('rejects a PENDING reservation, transitioning it to REJECTED', async () => {
+      const reservation = sampleReservation({ status: ReservationStatus.PENDING });
+      prisma.reservation.findUnique.mockResolvedValue(reservation);
+      prisma.reservation.update.mockResolvedValue({
+        ...reservation,
+        status: ReservationStatus.REJECTED,
+      });
+
+      const result = await reservationService.reject(reservation.id);
+
+      expect(prisma.reservation.update).toHaveBeenCalledWith({
+        where: { id: reservation.id },
+        data: { status: ReservationStatus.REJECTED },
+      });
+      expect(result.status).toBe(ReservationStatus.REJECTED);
+    });
+
+    it('throws NotFoundException when the reservation does not exist', async () => {
+      prisma.reservation.findUnique.mockResolvedValue(null);
+
+      await expect(reservationService.reject('missing')).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
+      expect(prisma.reservation.update).not.toHaveBeenCalled();
+    });
+
+    it.each([ReservationStatus.CONFIRMED, ReservationStatus.REJECTED, ReservationStatus.CANCELLED])(
+      'rejects rejecting a reservation that is already %s',
+      async (status) => {
+        const reservation = sampleReservation({ status });
+        prisma.reservation.findUnique.mockResolvedValue(reservation);
+
+        await expect(reservationService.reject(reservation.id)).rejects.toBeInstanceOf(
+          ConflictException,
+        );
+        expect(prisma.reservation.update).not.toHaveBeenCalled();
+      },
+    );
+
+    it('surfaces a 404 if the reservation is deleted between the lookup and the update (P2025)', async () => {
+      const reservation = sampleReservation({ status: ReservationStatus.PENDING });
+      prisma.reservation.findUnique.mockResolvedValue(reservation);
+      prisma.reservation.update.mockRejectedValue(recordNotFoundError());
+
+      await expect(reservationService.reject(reservation.id)).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
+    });
+
+    it('re-throws an unrelated database error unchanged', async () => {
+      const reservation = sampleReservation({ status: ReservationStatus.PENDING });
+      prisma.reservation.findUnique.mockResolvedValue(reservation);
+      const unrelated = new Error('totally unrelated failure');
+      prisma.reservation.update.mockRejectedValue(unrelated);
+
+      await expect(reservationService.reject(reservation.id)).rejects.toBe(unrelated);
     });
   });
 });
