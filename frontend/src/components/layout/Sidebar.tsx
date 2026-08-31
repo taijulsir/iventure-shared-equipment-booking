@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
+import { roleTone } from "@/features/users/roleTone";
 import { BrandLogo } from "@/components/ui/BrandLogo";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import {
@@ -14,6 +15,7 @@ import {
   IconEquipment,
   IconCalendar,
   IconShield,
+  IconUser,
   IconLogOut,
 } from "@/components/ui/Icons";
 import styles from "./Sidebar.module.css";
@@ -24,7 +26,7 @@ interface SidebarProps {
 }
 
 export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
-  const { user, isAdmin, logout } = useAuth();
+  const { user, isAdmin, isSuperAdmin, logout } = useAuth();
   const pathname = usePathname();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
@@ -38,8 +40,11 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
   }
 
   const isLinkActive = (href: string) => {
-    if (href === "/dashboard") {
-      return pathname === "/dashboard";
+    // Exact-match only for routes that now have their own nested child
+    // route (e.g. /admin/users under /admin) — otherwise the parent link
+    // would also render as "active" while on the child page.
+    if (href === "/dashboard" || href === "/admin") {
+      return pathname === href;
     }
     return pathname === href || pathname.startsWith(`${href}/`);
   };
@@ -117,6 +122,19 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
                 </span>
                 Admin Console
               </Link>
+
+              {isSuperAdmin && (
+                <Link
+                  href="/admin/users"
+                  className={[styles.navLink, isLinkActive("/admin/users") ? styles.navLinkActive : ""].filter(Boolean).join(" ")}
+                  onClick={onClose}
+                >
+                  <span className={styles.navIcon}>
+                    <IconUser size={18} />
+                  </span>
+                  User Management
+                </Link>
+              )}
             </>
           )}
         </nav>
@@ -128,7 +146,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
             <div className={styles.userDetails}>
               <span className={styles.userName}>{user.name}</span>
               <div className={styles.userMeta}>
-                <Badge tone={isAdmin ? "info" : "neutral"} showDot={false}>
+                <Badge tone={roleTone(user.role)} showDot={false}>
                   {user.role}
                 </Badge>
               </div>

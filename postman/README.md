@@ -2,8 +2,8 @@
 
 A complete, importable Postman collection and environment covering every
 currently implemented backend endpoint (Health, Authentication, Equipment,
-Reservations, and the Approval workflow), plus a Newman-based regression
-suite you can run from the command line.
+Reservations, the Approval workflow, and SuperAdmin User Management), plus a
+Newman-based regression suite you can run from the command line.
 
 ```
 postman/
@@ -77,14 +77,46 @@ Postman environment to match:
 ADMIN_EMAIL=you@example.com ADMIN_PASSWORD='Something!Long' npm run seed:admin
 ```
 
-## 4. Import into Postman (optional, for interactive use)
+## 4. Seed a SuperAdmin account
+
+Exactly one SuperAdmin account is expected to exist system-wide, and — like
+the Administrator account above — there is no API path that can create one;
+public registration only ever creates Employees, and the user-management
+role-change endpoint explicitly refuses to ever assign or modify SUPERADMIN
+(see `docs/decisions.md` and the SuperAdmin implementation report). Every
+request in the `6. SuperAdmin & User Management` folder requires a real
+SuperAdmin account to already exist.
+
+Run this once per database:
+
+```
+cd backend
+npm run seed:superadmin
+```
+
+Unlike `seed:admin`, this script has **no hardcoded fallback credentials** —
+it refuses to run unless `SUPERADMIN_EMAIL`, `SUPERADMIN_PASSWORD`, and
+`SUPERADMIN_NAME` are all set (see `backend/.env.example`). To match the
+placeholders already committed in `iventure-local.postman_environment.json`
+(`superadmin@iventure.local` / `PostmanSuperAdmin!2026`):
+
+```
+SUPERADMIN_EMAIL=superadmin@iventure.local SUPERADMIN_PASSWORD='PostmanSuperAdmin!2026' SUPERADMIN_NAME='Super Admin' npm run seed:superadmin
+```
+
+It's idempotent — safe to run again any time with the *same* email (it
+upserts, not inserts, and will not create a duplicate). Running it with a
+*different* email while a SuperAdmin already exists is deliberately refused
+rather than silently creating a second one — see the script's own comments.
+
+## 5. Import into Postman (optional, for interactive use)
 
 1. Postman → **Import** → select `postman/collections/iventure-api.postman_collection.json`.
 2. Postman → **Import** → select `postman/environments/iventure-local.postman_environment.json`.
 3. Select the **iVenture Local** environment from the environment dropdown (top right) before sending any request.
-4. Run requests folder by folder, top to bottom (`1. Health` → `2. Authentication` → `3. Equipment` → `4. Reservations` → `5. Approval Workflow`) — later requests depend on variables captured earlier in the same run (see "How request chaining works" below).
+4. Run requests folder by folder, top to bottom (`1. Health` → `2. Authentication` → `3. Equipment` → `4. Reservations` → `5. Approval Workflow` → `6. SuperAdmin & User Management`) — later requests depend on variables captured earlier in the same run (see "How request chaining works" below).
 
-## 5. Run the full suite with Newman
+## 6. Run the full suite with Newman
 
 ```
 cd backend
@@ -98,8 +130,8 @@ newman run ../postman/collections/iventure-api.postman_collection.json \
   -e ../postman/environments/iventure-local.postman_environment.json
 ```
 
-Expected output: **68 requests, 104 assertions, 0 failures** (assuming the
-Admin account has been seeded — see step 3). The run is deterministic and
+Expected output: **82 requests, 124 assertions, 0 failures** (assuming the
+Admin and SuperAdmin accounts have been seeded — see steps 3 and 4). The run is deterministic and
 safe to repeat: every run generates its own timestamp-based `runId` and
 registers fresh, uniquely-emailed test users, so back-to-back runs never
 collide with each other's data.
@@ -114,10 +146,10 @@ frontend would.
 
 This creates one real complication: Postman/Newman's built-in cookie jar
 holds **one** value per cookie name per domain. This collection deliberately
-logs in three different users (Employee A, Employee B, and an Administrator)
-to test ownership and RBAC boundaries — if each login just overwrote the
-same jar slot, later requests could only ever act as whichever user logged
-in most recently.
+logs in four different users (Employee A, Employee B, an Administrator, and
+a SuperAdmin) to test ownership and RBAC boundaries — if each login just
+overwrote the same jar slot, later requests could only ever act as whichever
+user logged in most recently.
 
 The fix used throughout this collection:
 
@@ -157,15 +189,16 @@ their URLs and bodies. Nothing needs to be copied by hand.
 | `baseUrl` | committed default | `http://localhost:3000` |
 | `employeePassword` | committed default | Shared placeholder password for every Employee this collection registers |
 | `adminEmail` / `adminPassword` | committed default | Must match the seeded Administrator account (step 3) |
+| `superAdminEmail` / `superAdminPassword` | committed default | Must match the seeded SuperAdmin account (step 4) |
 | `runId`, `employee[A/B/C]Email` | generated at runtime | Unique per run |
-| `employee[A/B/C]Id`, `adminId` | captured from responses | User ids for assertions/chaining |
-| `employee[A/B/C]Token`, `adminToken` | captured from Set-Cookie | Used to re-select a session (see above); stored as Postman `secret` type |
+| `employee[A/B/C]Id`, `adminId`, `superAdminId` | captured from responses | User ids for assertions/chaining |
+| `employee[A/B/C]Token`, `adminToken`, `superAdminToken` | captured from Set-Cookie | Used to re-select a session (see above); stored as Postman `secret` type |
 | `equipment*Id`, `reservation*Id` | captured from responses | Resource ids for chaining across requests |
 
-None of these are real secrets. `employeePassword`/`adminPassword` are
-obvious local-only placeholders, and the `*Token` values are short-lived
-JWTs issued by your own local backend during the run, not production
-credentials.
+None of these are real secrets. `employeePassword`/`adminPassword`/
+`superAdminPassword` are obvious local-only placeholders, and the `*Token`
+values are short-lived JWTs issued by your own local backend during the run,
+not production credentials.
 
 ## Success and error coverage
 
@@ -210,7 +243,15 @@ Covered explicitly:
   across every user; can approve/reject; **cannot** create or cancel a
   reservation (403 — not a capability the documented requirements grant
   Administrators); still fully subject to authentication (an unauthenticated
-  request to an Admin-only route is 401, not 403)
+  request to an Admin-only route is 401, not 403); **cannot** access
+  `/users` at all (403) — being Admin does not grant User Management access
+- SuperAdmin: everything an Administrator can do, **plus** exclusive access
+  to `/users` (list, get, change role); can promote EMPLOYEE → ADMIN and
+  demote ADMIN → EMPLOYEE; **cannot** assign SUPERADMIN to anyone (400,
+  rejected by request validation before it ever reaches a permission check);
+  **cannot** change their own role or any other SuperAdmin's role (403);
+  requesting a role a user already has is rejected as an invalid transition
+  (409), not treated as a no-op success
 
 ## Reservation lifecycle coverage
 
@@ -242,12 +283,14 @@ Covered explicitly:
   `postman.*`-prefixed users and `Postman *`-prefixed equipment/reservations
   over repeated runs; this is safe to periodically clear by hand in a local
   dev database if desired.
-- **The Administrator-login request requires a one-time manual/scripted
-  seeding step** (`npm run seed:admin`) — there is no way to fully automate
-  this purely through HTTP requests, since the API deliberately has no
-  endpoint that can create an Administrator (see above). If that step is
-  skipped, "Login Admin" and every request after it that depends on an
-  Admin session will fail with 401 — this is expected, not a collection bug.
+- **The Administrator-login and SuperAdmin-login requests each require a
+  one-time manual/scripted seeding step** (`npm run seed:admin` /
+  `npm run seed:superadmin`) — there is no way to fully automate either
+  purely through HTTP requests, since the API deliberately has no endpoint
+  that can create an Administrator or a SuperAdmin (see above). If either
+  step is skipped, the corresponding "Login ..." request and every request
+  after it that depends on that session will fail with 401 — this is
+  expected, not a collection bug.
 - **CSRF token flows are out of scope for this collection.** The
   application's documented CSRF posture (`docs/decisions.md`) relies on the
   cookie's `SameSite` attribute for same-site deployments; Postman/Newman

@@ -16,6 +16,7 @@ export function Header({ onOpenMobileMenu }: HeaderProps) {
     if (pathname === "/dashboard") return "Dashboard";
     if (pathname.startsWith("/equipment")) return "Equipment Catalogue";
     if (pathname.startsWith("/reservations")) return "Reservations";
+    if (pathname.startsWith("/admin/users")) return "User Management";
     if (pathname.startsWith("/admin")) return "Admin Console";
     return "Application";
   };

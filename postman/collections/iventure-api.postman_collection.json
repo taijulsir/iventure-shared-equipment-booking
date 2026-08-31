@@ -6405,6 +6405,1377 @@
           ]
         }
       ]
+    },
+    {
+      "name": "6. SuperAdmin & User Management",
+      "item": [
+        {
+          "id": "req-141",
+          "name": "Login SuperAdmin",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "REQUIRES a SuperAdmin account pre-seeded via `npm run seed:superadmin` (backend/src/scripts/seed-superadmin.ts) matching {{superAdminEmail}}/{{superAdminPassword}} -- public registration cannot create a SuperAdmin, and there is no user-management API path to create one either. If this request fails with 401, every SuperAdmin-only request later in this folder will also fail, and that is the expected/documented behavior, not a bug in the collection.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{superAdminEmail}}\",\n  \"password\": \"{{superAdminPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "id": "req-141-example",
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/auth/login",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "login"
+                  ]
+                },
+                "description": "REQUIRES a SuperAdmin account pre-seeded via `npm run seed:superadmin` (backend/src/scripts/seed-superadmin.ts) matching {{superAdminEmail}}/{{superAdminPassword}} -- public registration cannot create a SuperAdmin, and there is no user-management API path to create one either. If this request fails with 401, every SuperAdmin-only request later in this folder will also fail, and that is the expected/documented behavior, not a bug in the collection.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"{{superAdminEmail}}\",\n  \"password\": \"{{superAdminPassword}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"id\": \"b2c3d4e5-f6a7-4b5c-8d9e-0f1a2b3c4d5e\",\n  \"name\": \"Super Admin\",\n  \"email\": \"superadmin@iventure.local\",\n  \"role\": \"SUPERADMIN\",\n  \"createdAt\": \"2026-09-01T00:00:00.000Z\"\n}"
+            }
+          ],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200 (see request description if this fails)', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Role is SUPERADMIN', function () {",
+                  "  pm.expect(pm.response.json().role).to.eql('SUPERADMIN');",
+                  "});",
+                  "if (pm.response.code === 200) {",
+                  "  const body = pm.response.json();",
+                  "  pm.environment.set('superAdminId', body.id);",
+                  "  pm.environment.set('superAdminToken', pm.cookies.get('auth_token'));",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "req-142",
+          "name": "List Users - Employee Forbidden (Error Example)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users"
+              ]
+            },
+            "description": "RBAC: EMPLOYEE cannot access user management, even read-only. Expect 403, not 401 -- the caller IS authenticated, just not permitted."
+          },
+          "response": [
+            {
+              "id": "req-142-example",
+              "name": "403 Forbidden",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/users",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "users"
+                  ]
+                },
+                "description": "RBAC: EMPLOYEE cannot access user management, even read-only. Expect 403, not 401 -- the caller IS authenticated, just not permitted."
+              },
+              "status": "Forbidden",
+              "code": 403,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"message\": \"You do not have permission to perform this action\",\n  \"error\": \"Forbidden\",\n  \"statusCode\": 403\n}"
+            }
+          ],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Select employeeAToken's session in the shared cookie jar before sending.",
+                  "// Postman's cookie jar can only hold one 'auth_token' value per domain at",
+                  "// a time (the app's real HttpOnly cookie name) -- this project tests",
+                  "// multiple concurrent user sessions, so each request that must act as a",
+                  "// specific user re-selects that user's captured token into the jar right",
+                  "// before sending. See postman/README.md, 'How authentication works'.",
+                  "pm.cookies.jar().set(pm.variables.get('baseUrl'), 'auth_token', pm.variables.get('employeeAToken'), function (err) {",
+                  "  if (err) { console.error('Failed to select employeeAToken', err); }",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 403', function () { pm.response.to.have.status(403); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "req-143",
+          "name": "List Users - Admin Forbidden (Error Example)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users"
+              ]
+            },
+            "description": "RBAC: ADMIN cannot access user management either -- User Management is SUPERADMIN-only, and being Admin does not grant it (the role hierarchy is one-directional: SuperAdmin gains what Admin has, not the reverse)."
+          },
+          "response": [
+            {
+              "id": "req-143-example",
+              "name": "403 Forbidden",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/users",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "users"
+                  ]
+                },
+                "description": "RBAC: ADMIN cannot access user management either -- User Management is SUPERADMIN-only, and being Admin does not grant it (the role hierarchy is one-directional: SuperAdmin gains what Admin has, not the reverse)."
+              },
+              "status": "Forbidden",
+              "code": 403,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"message\": \"You do not have permission to perform this action\",\n  \"error\": \"Forbidden\",\n  \"statusCode\": 403\n}"
+            }
+          ],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Select adminToken's session in the shared cookie jar before sending.",
+                  "// Postman's cookie jar can only hold one 'auth_token' value per domain at",
+                  "// a time (the app's real HttpOnly cookie name) -- this project tests",
+                  "// multiple concurrent user sessions, so each request that must act as a",
+                  "// specific user re-selects that user's captured token into the jar right",
+                  "// before sending. See postman/README.md, 'How authentication works'.",
+                  "pm.cookies.jar().set(pm.variables.get('baseUrl'), 'auth_token', pm.variables.get('adminToken'), function (err) {",
+                  "  if (err) { console.error('Failed to select adminToken', err); }",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 403', function () { pm.response.to.have.status(403); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "req-144",
+          "name": "List Users [SuperAdmin]",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users"
+              ]
+            },
+            "description": "Only SUPERADMIN can list users. Returns every account -- Employees, Admins, and the SuperAdmin itself -- never including passwordHash."
+          },
+          "response": [
+            {
+              "id": "req-144-example",
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/users",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "users"
+                  ]
+                },
+                "description": "Only SUPERADMIN can list users. Returns every account -- Employees, Admins, and the SuperAdmin itself -- never including passwordHash."
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "[\n  {\n    \"id\": \"...\",\n    \"name\": \"Postman Employee A\",\n    \"email\": \"...\",\n    \"role\": \"EMPLOYEE\",\n    \"createdAt\": \"2026-09-01T00:00:00.000Z\"\n  }\n]"
+            }
+          ],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Select superAdminToken's session in the shared cookie jar before sending.",
+                  "// Postman's cookie jar can only hold one 'auth_token' value per domain at",
+                  "// a time (the app's real HttpOnly cookie name) -- this project tests",
+                  "// multiple concurrent user sessions, so each request that must act as a",
+                  "// specific user re-selects that user's captured token into the jar right",
+                  "// before sending. See postman/README.md, 'How authentication works'.",
+                  "pm.cookies.jar().set(pm.variables.get('baseUrl'), 'auth_token', pm.variables.get('superAdminToken'), function (err) {",
+                  "  if (err) { console.error('Failed to select superAdminToken', err); }",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Response is an array of users, never including passwordHash', function () {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body).to.be.an('array');",
+                  "  body.forEach((user) => pm.expect(user).to.not.have.property('passwordHash'));",
+                  "});",
+                  "pm.test('Employee A and the SuperAdmin both appear in the list', function () {",
+                  "  const emails = pm.response.json().map((u) => u.email);",
+                  "  pm.expect(emails).to.include(pm.variables.get('employeeAEmail'));",
+                  "  pm.expect(emails).to.include(pm.variables.get('superAdminEmail'));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "req-145",
+          "name": "Get User By Id [SuperAdmin]",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users/{{employeeAId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{employeeAId}}"
+              ]
+            },
+            "description": "Fetches a single user's detail. Still SUPERADMIN-only, same as the list endpoint."
+          },
+          "response": [
+            {
+              "id": "req-145-example",
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/users/{{employeeAId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "users",
+                    "{{employeeAId}}"
+                  ]
+                },
+                "description": "Fetches a single user's detail. Still SUPERADMIN-only, same as the list endpoint."
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"id\": \"{{employeeAId}}\",\n  \"name\": \"Postman Employee A\",\n  \"email\": \"...\",\n  \"role\": \"EMPLOYEE\",\n  \"createdAt\": \"2026-09-01T00:00:00.000Z\"\n}"
+            }
+          ],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Select superAdminToken's session in the shared cookie jar before sending.",
+                  "// Postman's cookie jar can only hold one 'auth_token' value per domain at",
+                  "// a time (the app's real HttpOnly cookie name) -- this project tests",
+                  "// multiple concurrent user sessions, so each request that must act as a",
+                  "// specific user re-selects that user's captured token into the jar right",
+                  "// before sending. See postman/README.md, 'How authentication works'.",
+                  "pm.cookies.jar().set(pm.variables.get('baseUrl'), 'auth_token', pm.variables.get('superAdminToken'), function (err) {",
+                  "  if (err) { console.error('Failed to select superAdminToken', err); }",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Returns Employee A, currently EMPLOYEE', function () {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.id).to.eql(pm.variables.get('employeeAId'));",
+                  "  pm.expect(body.role).to.eql('EMPLOYEE');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "req-146",
+          "name": "Get User By Id - Not Found (Error Example)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users/00000000-0000-0000-0000-000000000000",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "00000000-0000-0000-0000-000000000000"
+              ]
+            },
+            "description": "A well-formed UUID that doesn't correspond to any user."
+          },
+          "response": [
+            {
+              "id": "req-146-example",
+              "name": "404 Not Found",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/users/00000000-0000-0000-0000-000000000000",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "users",
+                    "00000000-0000-0000-0000-000000000000"
+                  ]
+                },
+                "description": "A well-formed UUID that doesn't correspond to any user."
+              },
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"message\": \"User not found\",\n  \"error\": \"Not Found\",\n  \"statusCode\": 404\n}"
+            }
+          ],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Select superAdminToken's session in the shared cookie jar before sending.",
+                  "// Postman's cookie jar can only hold one 'auth_token' value per domain at",
+                  "// a time (the app's real HttpOnly cookie name) -- this project tests",
+                  "// multiple concurrent user sessions, so each request that must act as a",
+                  "// specific user re-selects that user's captured token into the jar right",
+                  "// before sending. See postman/README.md, 'How authentication works'.",
+                  "pm.cookies.jar().set(pm.variables.get('baseUrl'), 'auth_token', pm.variables.get('superAdminToken'), function (err) {",
+                  "  if (err) { console.error('Failed to select superAdminToken', err); }",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 404', function () { pm.response.to.have.status(404); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "req-147",
+          "name": "Get User By Id - Invalid UUID (Error Example)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users/not-a-uuid",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "not-a-uuid"
+              ]
+            },
+            "description": "ParseUUIDPipe rejects a malformed id before the service ever runs."
+          },
+          "response": [
+            {
+              "id": "req-147-example",
+              "name": "400 Bad Request",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/users/not-a-uuid",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "users",
+                    "not-a-uuid"
+                  ]
+                },
+                "description": "ParseUUIDPipe rejects a malformed id before the service ever runs."
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"message\": \"Validation failed (uuid is expected)\",\n  \"error\": \"Bad Request\",\n  \"statusCode\": 400\n}"
+            }
+          ],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Select superAdminToken's session in the shared cookie jar before sending.",
+                  "// Postman's cookie jar can only hold one 'auth_token' value per domain at",
+                  "// a time (the app's real HttpOnly cookie name) -- this project tests",
+                  "// multiple concurrent user sessions, so each request that must act as a",
+                  "// specific user re-selects that user's captured token into the jar right",
+                  "// before sending. See postman/README.md, 'How authentication works'.",
+                  "pm.cookies.jar().set(pm.variables.get('baseUrl'), 'auth_token', pm.variables.get('superAdminToken'), function (err) {",
+                  "  if (err) { console.error('Failed to select superAdminToken', err); }",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 400', function () { pm.response.to.have.status(400); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "req-148",
+          "name": "Promote Employee to Admin [SuperAdmin]",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users/{{employeeAId}}/role",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{employeeAId}}",
+                "role"
+              ]
+            },
+            "description": "The only two valid transitions are EMPLOYEE -> ADMIN and ADMIN -> EMPLOYEE. Promotes Employee A.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"ADMIN\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "id": "req-148-example",
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/users/{{employeeAId}}/role",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "users",
+                    "{{employeeAId}}",
+                    "role"
+                  ]
+                },
+                "description": "The only two valid transitions are EMPLOYEE -> ADMIN and ADMIN -> EMPLOYEE. Promotes Employee A.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"role\": \"ADMIN\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"id\": \"{{employeeAId}}\",\n  \"name\": \"Postman Employee A\",\n  \"email\": \"...\",\n  \"role\": \"ADMIN\",\n  \"createdAt\": \"2026-09-01T00:00:00.000Z\"\n}"
+            }
+          ],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Select superAdminToken's session in the shared cookie jar before sending.",
+                  "// Postman's cookie jar can only hold one 'auth_token' value per domain at",
+                  "// a time (the app's real HttpOnly cookie name) -- this project tests",
+                  "// multiple concurrent user sessions, so each request that must act as a",
+                  "// specific user re-selects that user's captured token into the jar right",
+                  "// before sending. See postman/README.md, 'How authentication works'.",
+                  "pm.cookies.jar().set(pm.variables.get('baseUrl'), 'auth_token', pm.variables.get('superAdminToken'), function (err) {",
+                  "  if (err) { console.error('Failed to select superAdminToken', err); }",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Employee A is now ADMIN', function () {",
+                  "  pm.expect(pm.response.json().role).to.eql('ADMIN');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "req-149",
+          "name": "Promote/Demote - Employee Forbidden (Error Example)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users/{{employeeAId}}/role",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{employeeAId}}",
+                "role"
+              ]
+            },
+            "description": "RBAC: an EMPLOYEE cannot change anyone's role, including their own or another employee's. Blocked by RolesGuard before any transition logic runs.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"ADMIN\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "id": "req-149-example",
+              "name": "403 Forbidden",
+              "originalRequest": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/users/{{employeeAId}}/role",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "users",
+                    "{{employeeAId}}",
+                    "role"
+                  ]
+                },
+                "description": "RBAC: an EMPLOYEE cannot change anyone's role, including their own or another employee's. Blocked by RolesGuard before any transition logic runs.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"role\": \"ADMIN\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Forbidden",
+              "code": 403,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"message\": \"You do not have permission to perform this action\",\n  \"error\": \"Forbidden\",\n  \"statusCode\": 403\n}"
+            }
+          ],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Select employeeBToken's session in the shared cookie jar before sending.",
+                  "// Postman's cookie jar can only hold one 'auth_token' value per domain at",
+                  "// a time (the app's real HttpOnly cookie name) -- this project tests",
+                  "// multiple concurrent user sessions, so each request that must act as a",
+                  "// specific user re-selects that user's captured token into the jar right",
+                  "// before sending. See postman/README.md, 'How authentication works'.",
+                  "pm.cookies.jar().set(pm.variables.get('baseUrl'), 'auth_token', pm.variables.get('employeeBToken'), function (err) {",
+                  "  if (err) { console.error('Failed to select employeeBToken', err); }",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 403', function () { pm.response.to.have.status(403); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "req-150",
+          "name": "Promote/Demote - Admin Forbidden (Error Example)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users/{{employeeAId}}/role",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{employeeAId}}",
+                "role"
+              ]
+            },
+            "description": "RBAC: being ADMIN does not grant access to user management -- only SUPERADMIN may change roles.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"EMPLOYEE\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "id": "req-150-example",
+              "name": "403 Forbidden",
+              "originalRequest": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/users/{{employeeAId}}/role",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "users",
+                    "{{employeeAId}}",
+                    "role"
+                  ]
+                },
+                "description": "RBAC: being ADMIN does not grant access to user management -- only SUPERADMIN may change roles.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"role\": \"EMPLOYEE\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Forbidden",
+              "code": 403,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"message\": \"You do not have permission to perform this action\",\n  \"error\": \"Forbidden\",\n  \"statusCode\": 403\n}"
+            }
+          ],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Select adminToken's session in the shared cookie jar before sending.",
+                  "// Postman's cookie jar can only hold one 'auth_token' value per domain at",
+                  "// a time (the app's real HttpOnly cookie name) -- this project tests",
+                  "// multiple concurrent user sessions, so each request that must act as a",
+                  "// specific user re-selects that user's captured token into the jar right",
+                  "// before sending. See postman/README.md, 'How authentication works'.",
+                  "pm.cookies.jar().set(pm.variables.get('baseUrl'), 'auth_token', pm.variables.get('adminToken'), function (err) {",
+                  "  if (err) { console.error('Failed to select adminToken', err); }",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 403', function () { pm.response.to.have.status(403); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "req-151",
+          "name": "Demote Admin to Employee [SuperAdmin]",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users/{{employeeAId}}/role",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{employeeAId}}",
+                "role"
+              ]
+            },
+            "description": "Reverses the promotion above. Also leaves Employee A back in its original EMPLOYEE state for any other collection run/folder that assumes that.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"EMPLOYEE\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "id": "req-151-example",
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/users/{{employeeAId}}/role",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "users",
+                    "{{employeeAId}}",
+                    "role"
+                  ]
+                },
+                "description": "Reverses the promotion above. Also leaves Employee A back in its original EMPLOYEE state for any other collection run/folder that assumes that.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"role\": \"EMPLOYEE\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"id\": \"{{employeeAId}}\",\n  \"name\": \"Postman Employee A\",\n  \"email\": \"...\",\n  \"role\": \"EMPLOYEE\",\n  \"createdAt\": \"2026-09-01T00:00:00.000Z\"\n}"
+            }
+          ],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Select superAdminToken's session in the shared cookie jar before sending.",
+                  "// Postman's cookie jar can only hold one 'auth_token' value per domain at",
+                  "// a time (the app's real HttpOnly cookie name) -- this project tests",
+                  "// multiple concurrent user sessions, so each request that must act as a",
+                  "// specific user re-selects that user's captured token into the jar right",
+                  "// before sending. See postman/README.md, 'How authentication works'.",
+                  "pm.cookies.jar().set(pm.variables.get('baseUrl'), 'auth_token', pm.variables.get('superAdminToken'), function (err) {",
+                  "  if (err) { console.error('Failed to select superAdminToken', err); }",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Employee A is EMPLOYEE again', function () {",
+                  "  pm.expect(pm.response.json().role).to.eql('EMPLOYEE');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "req-152",
+          "name": "Invalid Role Transition - Already Has Role (Error Example)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users/{{employeeAId}}/role",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{employeeAId}}",
+                "role"
+              ]
+            },
+            "description": "Employee A is already EMPLOYEE (see the demote request above) -- requesting the role a user already has is not a valid transition, not a silent no-op success.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"EMPLOYEE\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "id": "req-152-example",
+              "name": "409 Conflict",
+              "originalRequest": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/users/{{employeeAId}}/role",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "users",
+                    "{{employeeAId}}",
+                    "role"
+                  ]
+                },
+                "description": "Employee A is already EMPLOYEE (see the demote request above) -- requesting the role a user already has is not a valid transition, not a silent no-op success.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"role\": \"EMPLOYEE\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Conflict",
+              "code": 409,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"message\": \"User already has the role \\\"EMPLOYEE\\\"; the only supported role changes are EMPLOYEE -> ADMIN and ADMIN -> EMPLOYEE\",\n  \"error\": \"Conflict\",\n  \"statusCode\": 409\n}"
+            }
+          ],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Select superAdminToken's session in the shared cookie jar before sending.",
+                  "// Postman's cookie jar can only hold one 'auth_token' value per domain at",
+                  "// a time (the app's real HttpOnly cookie name) -- this project tests",
+                  "// multiple concurrent user sessions, so each request that must act as a",
+                  "// specific user re-selects that user's captured token into the jar right",
+                  "// before sending. See postman/README.md, 'How authentication works'.",
+                  "pm.cookies.jar().set(pm.variables.get('baseUrl'), 'auth_token', pm.variables.get('superAdminToken'), function (err) {",
+                  "  if (err) { console.error('Failed to select superAdminToken', err); }",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 409', function () { pm.response.to.have.status(409); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "req-153",
+          "name": "Role Escalation Attempt - SUPERADMIN Rejected (Error Example)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users/{{employeeAId}}/role",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{employeeAId}}",
+                "role"
+              ]
+            },
+            "description": "SUPERADMIN is never an assignable target role through this endpoint -- rejected by request validation (400) before any service logic runs. There is no way to create a second SuperAdmin through the API.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"SUPERADMIN\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "id": "req-153-example",
+              "name": "400 Bad Request",
+              "originalRequest": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/users/{{employeeAId}}/role",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "users",
+                    "{{employeeAId}}",
+                    "role"
+                  ]
+                },
+                "description": "SUPERADMIN is never an assignable target role through this endpoint -- rejected by request validation (400) before any service logic runs. There is no way to create a second SuperAdmin through the API.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"role\": \"SUPERADMIN\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"message\": [\"role must be either EMPLOYEE or ADMIN\"],\n  \"error\": \"Bad Request\",\n  \"statusCode\": 400\n}"
+            }
+          ],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Select superAdminToken's session in the shared cookie jar before sending.",
+                  "// Postman's cookie jar can only hold one 'auth_token' value per domain at",
+                  "// a time (the app's real HttpOnly cookie name) -- this project tests",
+                  "// multiple concurrent user sessions, so each request that must act as a",
+                  "// specific user re-selects that user's captured token into the jar right",
+                  "// before sending. See postman/README.md, 'How authentication works'.",
+                  "pm.cookies.jar().set(pm.variables.get('baseUrl'), 'auth_token', pm.variables.get('superAdminToken'), function (err) {",
+                  "  if (err) { console.error('Failed to select superAdminToken', err); }",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 400', function () { pm.response.to.have.status(400); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "req-154",
+          "name": "Protected: SuperAdmin Cannot Change Own/Only Role (Error Example)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users/{{superAdminId}}/role",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{superAdminId}}",
+                "role"
+              ]
+            },
+            "description": "The SuperAdmin cannot demote or otherwise change their own role, and the system never allows removing/changing the sole SuperAdmin through the normal user-management API regardless of who is asking.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"ADMIN\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "id": "req-154-example",
+              "name": "403 Forbidden",
+              "originalRequest": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/users/{{superAdminId}}/role",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "users",
+                    "{{superAdminId}}",
+                    "role"
+                  ]
+                },
+                "description": "The SuperAdmin cannot demote or otherwise change their own role, and the system never allows removing/changing the sole SuperAdmin through the normal user-management API regardless of who is asking.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"role\": \"ADMIN\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Forbidden",
+              "code": 403,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"message\": \"You cannot change your own role\",\n  \"error\": \"Forbidden\",\n  \"statusCode\": 403\n}"
+            }
+          ],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Select superAdminToken's session in the shared cookie jar before sending.",
+                  "// Postman's cookie jar can only hold one 'auth_token' value per domain at",
+                  "// a time (the app's real HttpOnly cookie name) -- this project tests",
+                  "// multiple concurrent user sessions, so each request that must act as a",
+                  "// specific user re-selects that user's captured token into the jar right",
+                  "// before sending. See postman/README.md, 'How authentication works'.",
+                  "pm.cookies.jar().set(pm.variables.get('baseUrl'), 'auth_token', pm.variables.get('superAdminToken'), function (err) {",
+                  "  if (err) { console.error('Failed to select superAdminToken', err); }",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 403', function () { pm.response.to.have.status(403); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
     }
   ],
   "event": [
