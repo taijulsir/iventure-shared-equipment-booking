@@ -6,6 +6,7 @@ import { HealthModule } from './health/health.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 import { AuthModule } from './auth/auth.module.js';
 import { AuthorizationDemoModule } from './auth/testing/authorization-demo.module.js';
+import { EquipmentModule } from './equipment/equipment.module.js';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { AuthorizationDemoModule } from './auth/testing/authorization-demo.modul
     PrismaModule,
     HealthModule,
     AuthModule,
+    EquipmentModule,
     // TEST/SUPPORT INFRASTRUCTURE ONLY — see authorization-demo.module.ts.
     // Remove once real ownership-checked domain routes (Reservations) exist.
     AuthorizationDemoModule,
