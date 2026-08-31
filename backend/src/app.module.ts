@@ -5,6 +5,7 @@ import { AppService } from './app.service.js';
 import { HealthModule } from './health/health.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 import { AuthModule } from './auth/auth.module.js';
+import { AuthorizationDemoModule } from './auth/testing/authorization-demo.module.js';
 
 @Module({
   imports: [
@@ -12,6 +13,9 @@ import { AuthModule } from './auth/auth.module.js';
     PrismaModule,
     HealthModule,
     AuthModule,
+    // TEST/SUPPORT INFRASTRUCTURE ONLY — see authorization-demo.module.ts.
+    // Remove once real ownership-checked domain routes (Reservations) exist.
+    AuthorizationDemoModule,
   ],
   controllers: [AppController],
   providers: [AppService],
