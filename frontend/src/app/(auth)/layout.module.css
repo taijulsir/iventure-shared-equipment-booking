@@ -18,12 +18,17 @@
 .brandLink {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
   text-decoration: none;
-  font-size: 0.9375rem;
-  font-weight: 700;
-  color: var(--foreground);
 }
+
+.brandLogo {
+  height: 36px;
+  width: auto;
+  max-width: 180px;
+  object-fit: contain;
+  display: block;
+}
+
 
 .mainArea {
   flex: 1;

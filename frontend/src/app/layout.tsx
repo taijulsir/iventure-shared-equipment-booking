@@ -17,12 +17,19 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "iVenture Shared Equipment Booking",
   description: "Enterprise shared equipment booking and resource management system",
+  icons: {
+    icon: "/icon.png",
+    shortcut: "/icon.png",
+    apple: "/icon.png",
+  },
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
       <head>
+        <link rel="icon" href="/icon.png" type="image/png" />
+
         <script
           dangerouslySetInnerHTML={{
             __html: `

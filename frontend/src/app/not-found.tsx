@@ -1,5 +1,6 @@
+import { BrandLogo } from "@/components/ui/BrandLogo";
 import { Button } from "@/components/ui/Button";
-import { IconBrandLogo, IconArrowRight } from "@/components/ui/Icons";
+import { IconArrowRight } from "@/components/ui/Icons";
 
 export default function NotFound() {
   return (
@@ -17,8 +18,7 @@ export default function NotFound() {
     >
       <div
         style={{
-          width: "56px",
-          height: "56px",
+          padding: "0.5rem 1rem",
           borderRadius: "var(--radius-lg)",
           backgroundColor: "var(--surface-subtle)",
           border: "1px solid var(--color-border-accent)",
@@ -28,8 +28,11 @@ export default function NotFound() {
           marginBottom: "1.5rem",
         }}
       >
-        <IconBrandLogo size={32} />
+        <BrandLogo height={40} />
       </div>
+
+
+
 
       <span
         style={{

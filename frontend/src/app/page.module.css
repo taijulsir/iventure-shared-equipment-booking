@@ -19,24 +19,17 @@
 .brand {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
   text-decoration: none;
 }
 
-.brandTitle {
-  font-size: 1.125rem;
-  font-weight: 700;
-  color: var(--foreground);
-  letter-spacing: -0.02em;
+.brandLogo {
+  height: 40px;
+  width: auto;
+  max-width: 200px;
+  object-fit: contain;
+  display: block;
 }
 
-.brandSubtitle {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--color-primary);
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-}
 
 .navActions {
   display: flex;

@@ -1,4 +1,4 @@
-import { IconBrandLogo } from "./Icons";
+import { BrandLogo } from "./BrandLogo";
 import styles from "./CenteredLoader.module.css";
 
 export function CenteredLoader({
@@ -15,9 +15,11 @@ export function CenteredLoader({
       <div className={styles.loaderWrapper}>
         <div className={styles.pulsingRing} aria-hidden="true" />
         <div className={styles.innerCore} aria-hidden="true">
-          <IconBrandLogo size={20} />
+          <BrandLogo height={24} width={24} />
         </div>
       </div>
+
+
       <p className={styles.title}>{title}</p>
       {subtitle && <p className={styles.subtitle}>{subtitle}</p>}
     </div>

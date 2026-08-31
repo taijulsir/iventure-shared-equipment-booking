@@ -3,6 +3,7 @@
   height: 100vh;
   position: sticky;
   top: 0;
+  flex-shrink: 0;
   display: flex;
   flex-direction: column;
   background-color: var(--surface);
@@ -12,33 +13,22 @@
   transition: transform var(--transition-normal);
 }
 
+
 .brand {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
   padding: var(--space-2) var(--space-2) var(--space-6);
   text-decoration: none;
 }
 
-.brandInfo {
-  display: flex;
-  flex-direction: column;
+.brandLogo {
+  height: 38px;
+  width: auto;
+  max-width: 190px;
+  object-fit: contain;
+  display: block;
 }
 
-.brandName {
-  font-size: 1rem;
-  font-weight: 700;
-  color: var(--foreground);
-  letter-spacing: -0.02em;
-  line-height: 1.2;
-}
-
-.brandTagline {
-  font-size: 0.75rem;
-  font-weight: 500;
-  color: var(--color-primary);
-  letter-spacing: 0.02em;
-}
 
 .navSection {
   flex: 1;
@@ -95,7 +85,9 @@
   padding-top: var(--space-4);
   border-top: 1px solid var(--color-border);
   margin-top: auto;
+  flex-shrink: 0;
 }
+
 
 .userCard {
   display: flex;

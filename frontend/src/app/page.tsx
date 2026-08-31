@@ -2,9 +2,9 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getServerSession } from "@/lib/api/server-session";
 import { Button } from "@/components/ui/Button";
+import { BrandLogo } from "@/components/ui/BrandLogo";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import {
-  IconBrandLogo,
   IconEquipment,
   IconCalendar,
   IconShield,
@@ -24,12 +24,11 @@ export default async function Home() {
       {/* Public Navigation */}
       <header className={styles.publicNav}>
         <Link href="/" className={styles.brand}>
-          <IconBrandLogo size={32} />
-          <div>
-            <div className={styles.brandTitle}>iVenture</div>
-            <div className={styles.brandSubtitle}>Asset Booking</div>
-          </div>
+          <BrandLogo height={40} priority />
         </Link>
+
+
+
 
         <div className={styles.navActions}>
           <ThemeToggle />

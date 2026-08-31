@@ -1,0 +1,37 @@
+.logoContainer {
+  display: inline-flex;
+  align-items: center;
+}
+
+.logoImage {
+  height: 38px;
+  width: auto;
+  max-width: 190px;
+  object-fit: contain;
+  display: block;
+}
+
+.logoLight {
+  display: block;
+}
+
+.logoDark {
+  display: none;
+}
+
+[data-theme="dark"] .logoLight {
+  display: none;
+}
+
+[data-theme="dark"] .logoDark {
+  display: block;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .logoLight {
+    display: none;
+  }
+  :root:not([data-theme="light"]) .logoDark {
+    display: block;
+  }
+}

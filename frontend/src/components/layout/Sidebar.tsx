@@ -1,14 +1,15 @@
 "use client";
 
 import { useState } from "react";
+
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
+import { BrandLogo } from "@/components/ui/BrandLogo";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import {
-  IconBrandLogo,
   IconDashboard,
   IconEquipment,
   IconCalendar,
@@ -58,12 +59,11 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
       >
         {/* Brand identity */}
         <Link href="/dashboard" className={styles.brand} onClick={onClose}>
-          <IconBrandLogo size={32} />
-          <div className={styles.brandInfo}>
-            <span className={styles.brandName}>iVenture</span>
-            <span className={styles.brandTagline}>Asset Booking</span>
-          </div>
+          <BrandLogo height={38} priority />
         </Link>
+
+
+
 
         {/* Navigation items */}
         <nav className={styles.navSection}>
