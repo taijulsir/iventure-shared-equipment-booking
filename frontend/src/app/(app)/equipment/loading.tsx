@@ -1,5 +1,10 @@
-import { Spinner } from "@/components/ui/Spinner";
+import { CenteredLoader } from "@/components/ui/CenteredLoader";
 
 export default function EquipmentLoading() {
-  return <Spinner size="lg" label="Loading equipment" />;
+  return (
+    <CenteredLoader
+      title="Loading equipment catalogue..."
+      subtitle="Fetching available inventory and booking policies"
+    />
+  );
 }

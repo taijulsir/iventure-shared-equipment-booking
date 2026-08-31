@@ -1,5 +1,10 @@
-import { Spinner } from "@/components/ui/Spinner";
+import { CenteredLoader } from "@/components/ui/CenteredLoader";
 
 export default function ReservationsLoading() {
-  return <Spinner size="lg" label="Loading reservations" />;
+  return (
+    <CenteredLoader
+      title="Loading reservations..."
+      subtitle="Fetching booking schedules and ownership records"
+    />
+  );
 }
