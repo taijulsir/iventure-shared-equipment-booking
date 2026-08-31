@@ -27,7 +27,8 @@ import type { PaginatedResult } from './types.js';
  * also applied controller-wide, but only the write routes carry @Roles(...)
  * — the read routes (GET) have none, so RolesGuard imposes no extra
  * restriction on them beyond "authenticated", per the authorization matrix:
- * EMPLOYEE and ADMIN can both read; only ADMIN can create/update/delete.
+ * EMPLOYEE and ADMIN can both read; only ADMIN (and SUPERADMIN, per the
+ * SUPERADMIN -> ADMIN -> EMPLOYEE role hierarchy) can create/update/delete.
  */
 @Controller('equipment')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -45,14 +46,14 @@ export class EquipmentController {
   }
 
   @Post()
-  @Roles(Role.ADMIN)
+  @Roles(Role.ADMIN, Role.SUPERADMIN)
   @HttpCode(HttpStatus.CREATED)
   create(@Body() dto: CreateEquipmentDto): Promise<Equipment> {
     return this.equipmentService.create(dto);
   }
 
   @Patch(':id')
-  @Roles(Role.ADMIN)
+  @Roles(Role.ADMIN, Role.SUPERADMIN)
   update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateEquipmentDto,
@@ -61,7 +62,7 @@ export class EquipmentController {
   }
 
   @Delete(':id')
-  @Roles(Role.ADMIN)
+  @Roles(Role.ADMIN, Role.SUPERADMIN)
   @HttpCode(HttpStatus.NO_CONTENT)
   remove(@Param('id', ParseUUIDPipe) id: string): Promise<void> {
     return this.equipmentService.remove(id);

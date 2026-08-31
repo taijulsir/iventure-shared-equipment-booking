@@ -8,6 +8,7 @@ import { AuthModule } from './auth/auth.module.js';
 import { AuthorizationDemoModule } from './auth/testing/authorization-demo.module.js';
 import { EquipmentModule } from './equipment/equipment.module.js';
 import { ReservationModule } from './reservation/reservation.module.js';
+import { UsersModule } from './users/users.module.js';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { ReservationModule } from './reservation/reservation.module.js';
     AuthModule,
     EquipmentModule,
     ReservationModule,
+    UsersModule,
     // TEST/SUPPORT INFRASTRUCTURE ONLY — see authorization-demo.module.ts.
     // Remove once real ownership-checked domain routes (Reservations) exist.
     AuthorizationDemoModule,

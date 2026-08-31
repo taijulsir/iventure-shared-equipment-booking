@@ -7,7 +7,17 @@ import type { SafeUser } from "@/types/user";
 
 interface AuthContextValue {
   user: SafeUser;
+  /**
+   * True for ADMIN and SUPERADMIN, per the SUPERADMIN -> ADMIN -> EMPLOYEE
+   * role hierarchy — a SuperAdmin should see everything an Admin sees (the
+   * Admin Console link, the dashboard's admin card, etc.) without every one
+   * of those call sites needing to know SUPERADMIN exists. Use `isSuperAdmin`
+   * instead when a check must be SuperAdmin-exclusive (e.g. User
+   * Management). This is UX convenience only — the backend re-checks the
+   * real role on every request regardless of what this flag says.
+   */
   isAdmin: boolean;
+  isSuperAdmin: boolean;
   logout: () => Promise<void>;
 }
 
@@ -40,7 +50,12 @@ export function AuthProvider({
   }, [router]);
 
   const value = useMemo<AuthContextValue>(
-    () => ({ user, isAdmin: user.role === "ADMIN", logout }),
+    () => ({
+      user,
+      isAdmin: user.role === "ADMIN" || user.role === "SUPERADMIN",
+      isSuperAdmin: user.role === "SUPERADMIN",
+      logout,
+    }),
     [user, logout],
   );
 

@@ -26,12 +26,15 @@ import { CreateReservationDto } from './dto/create-reservation.dto.js';
  * per docs/requirements.md and docs/decisions.md, "create reservation" and
  * "cancel own reservation" are documented Employee capabilities, while
  * "manage reservations that require administrator approval" is a documented
- * Administrator capability. GET routes carry no @Roles(...): both roles may
- * read, and ReservationService enforces the ownership boundary within them
- * (see reservation.service.ts) — RBAC and ownership are kept separate, as
- * documented. Approve/reject have no ownership check at all (see
- * reservation.service.ts) since they are administrator-management actions,
- * not ownership-bounded ones.
+ * Administrator capability. Approve/reject also accept SUPERADMIN, per the
+ * SUPERADMIN -> ADMIN -> EMPLOYEE role hierarchy — this does not extend to
+ * create/cancel, which remain EMPLOYEE-only exactly as before; SuperAdmin
+ * (like Admin) is still not able to create or cancel reservations. GET
+ * routes carry no @Roles(...): every role may read, and ReservationService
+ * enforces the ownership boundary within them (see reservation.service.ts)
+ * — RBAC and ownership are kept separate, as documented. Approve/reject have
+ * no ownership check at all (see reservation.service.ts) since they are
+ * administrator-management actions, not ownership-bounded ones.
  */
 @Controller('reservations')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -71,13 +74,13 @@ export class ReservationController {
   }
 
   @Patch(':id/approve')
-  @Roles(Role.ADMIN)
+  @Roles(Role.ADMIN, Role.SUPERADMIN)
   approve(@Param('id', ParseUUIDPipe) id: string): Promise<Reservation> {
     return this.reservationService.approve(id);
   }
 
   @Patch(':id/reject')
-  @Roles(Role.ADMIN)
+  @Roles(Role.ADMIN, Role.SUPERADMIN)
   reject(@Param('id', ParseUUIDPipe) id: string): Promise<Reservation> {
     return this.reservationService.reject(id);
   }

@@ -17,6 +17,13 @@ datasource db {
 enum Role {
   EMPLOYEE
   ADMIN
+  // Exactly one SUPERADMIN account is expected to exist system-wide,
+  // provisioned only through the dedicated bootstrap script (see
+  // src/scripts/seed-superadmin.ts) — never through public registration and
+  // never assignable through the user-management role-change endpoint. See
+  // docs/decisions.md and the SuperAdmin implementation report for the full
+  // role-hierarchy and role-transition rules.
+  SUPERADMIN
 }
 
 enum ReservationStatus {
@@ -35,10 +42,11 @@ model User {
   name         String
   email        String   @unique
   passwordHash String   @map("password_hash")
-  // Defaults to EMPLOYEE: the schema never defaults a new account to ADMIN.
-  // Administrator accounts are provisioned separately (see docs/decisions.md,
-  // "Administrator Account Provisioning") rather than through a client-controlled
-  // value at creation time.
+  // Defaults to EMPLOYEE: the schema never defaults a new account to ADMIN or
+  // SUPERADMIN. Administrator accounts are provisioned separately (see
+  // docs/decisions.md, "Administrator Account Provisioning"), and the single
+  // SuperAdmin account is provisioned only via src/scripts/seed-superadmin.ts
+  // — never through a client-controlled value at creation time.
   role         Role     @default(EMPLOYEE)
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")

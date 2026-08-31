@@ -387,6 +387,30 @@ Public registration creates Employee accounts only. The registration endpoint mu
 
 Administrator accounts are provisioned separately — for example, seeded directly in the database or created by an existing Administrator — outside the public registration flow. This avoids a straightforward privilege-escalation path where a user could grant themselves Administrator access at signup.
 
+### SuperAdmin Role and User Management
+
+A third role, SuperAdmin, sits above Administrator:
+
+```text
+SuperAdmin
+  |
+  +-- Everything an Administrator can do
+  +-- List/view every user account
+  +-- Promote an Employee to Administrator
+  +-- Demote an Administrator to Employee
+```
+
+Exactly one SuperAdmin account is expected to exist system-wide. It is never created through public registration (the registration DTO has no role field at all) and never created through the user-management role-change endpoint (its DTO only accepts `EMPLOYEE`/`ADMIN` as a target role — `SUPERADMIN` is not a representable value there). The only way a SuperAdmin account comes to exist is the dedicated bootstrap script (`backend/src/scripts/seed-superadmin.ts`), which itself refuses to create a second one if a SuperAdmin with a different email already exists.
+
+The hierarchy is additive, not a numeric-rank comparison in the authorization guard: existing Administrator-only routes (Equipment writes, reservation approve/reject) were extended to also accept SUPERADMIN. This was a deliberate choice over rewriting the role check as "rank >= required rank" — a rank-based check would also have let Administrators through Employee-only routes (reservation create/cancel), which is not a capability Administrators are meant to have (see above). Employee-only routes were left untouched.
+
+Role changes are restricted to specific, validated transitions rather than accepting an arbitrary target role:
+
+* Valid: Employee → Administrator, Administrator → Employee.
+* Never valid: assigning SUPERADMIN to anyone; changing the SuperAdmin's own role, by itself or anyone else, through this endpoint; a user changing their own role.
+
+Resource ownership (`OwnershipService`) is unaffected by this role — SuperAdmin is not added to any ownership-exemption list. Role authorization and resource ownership remain separate concepts, per "Role-Based Access vs Resource Ownership" above.
+
 ---
 
 ## 8. Reservation Overlap Protection

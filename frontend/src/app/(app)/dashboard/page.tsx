@@ -8,6 +8,7 @@ import {
   IconEquipment,
   IconCalendar,
   IconShield,
+  IconUser,
   IconChevronRight,
   IconSparkles,
   IconClock,
@@ -16,7 +17,7 @@ import {
 import styles from "./page.module.css";
 
 export default function DashboardPage() {
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, isSuperAdmin } = useAuth();
 
   return (
     <div className={styles.page}>
@@ -24,8 +25,8 @@ export default function DashboardPage() {
       <section className={styles.welcomeHero}>
         <div className={styles.welcomeContent}>
           <div className={styles.welcomeBadge}>
-            <Badge tone={isAdmin ? "info" : "success"}>
-              {isAdmin ? "Administrator Session" : "Employee Portal"}
+            <Badge tone={isSuperAdmin ? "warning" : isAdmin ? "info" : "success"}>
+              {isSuperAdmin ? "SuperAdmin Session" : isAdmin ? "Administrator Session" : "Employee Portal"}
             </Badge>
           </div>
 
@@ -34,9 +35,11 @@ export default function DashboardPage() {
           </h1>
 
           <p className={styles.subtitle}>
-            {isAdmin
-              ? "You have full administrator access to company assets, approval requests, and reservation overviews."
-              : "Search available equipment, create new bookings, and track your active reservations."}
+            {isSuperAdmin
+              ? "You have full SuperAdmin access, including managing Employee and Administrator role assignments."
+              : isAdmin
+                ? "You have full administrator access to company assets, approval requests, and reservation overviews."
+                : "Search available equipment, create new bookings, and track your active reservations."}
           </p>
         </div>
 
@@ -128,6 +131,31 @@ export default function DashboardPage() {
 
               <div className={styles.cardFooter}>
                 <span>Manage operations</span>
+                <IconChevronRight size={16} />
+              </div>
+            </Link>
+          )}
+
+          {isSuperAdmin && (
+            <Link href="/admin/users" className={styles.navCard}>
+              <div className={styles.cardTop}>
+                <div className={styles.iconBox}>
+                  <IconUser size={24} />
+                </div>
+                <Badge tone="warning" showDot={false}>
+                  SuperAdmin
+                </Badge>
+              </div>
+
+              <div className={styles.cardBody}>
+                <h3 className={styles.cardTitle}>User Management</h3>
+                <p className={styles.cardDescription}>
+                  Review every account and promote or demote Employee/Administrator roles.
+                </p>
+              </div>
+
+              <div className={styles.cardFooter}>
+                <span>Manage users</span>
                 <IconChevronRight size={16} />
               </div>
             </Link>
