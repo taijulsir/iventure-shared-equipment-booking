@@ -16,6 +16,16 @@ interface AttemptRecord {
  *
  * Implements a sliding-window algorithm without introducing external infrastructure
  * like Redis. Discards timestamps older than the window duration to prevent memory leaks.
+ *
+ * Client identity comes from `request.ip` — Express's own trusted-proxy-aware
+ * resolution — never from parsing the raw `X-Forwarded-For` header directly.
+ * Express only honors that header at all when `app.set('trust proxy', ...)`
+ * is configured, which `main.ts` does only in production, for exactly the
+ * VPS's single Nginx hop (docs/decisions.md, "Login Rate Limiting Reversal
+ * and Trusted Proxy Configuration"). Outside production (local dev, CI,
+ * e2e) the header is ignored entirely and `request.ip` is the raw socket
+ * address. Either way, an unauthenticated client cannot change its own
+ * rate-limit identity by sending an arbitrary X-Forwarded-For value.
  */
 @Injectable()
 export class LoginThrottlerGuard implements CanActivate {
@@ -59,11 +69,12 @@ export class LoginThrottlerGuard implements CanActivate {
     return true;
   }
 
+  /**
+   * `request.ip` is Express's own trusted-proxy-aware resolution — see the
+   * class doc comment above for why this is never the raw
+   * X-Forwarded-For header parsed by hand.
+   */
   private getClientIp(request: Request): string {
-    const forwarded = request.headers['x-forwarded-for'];
-    if (typeof forwarded === 'string') {
-      return forwarded.split(',')[0].trim();
-    }
     return request.ip || request.socket.remoteAddress || '127.0.0.1';
   }
 
