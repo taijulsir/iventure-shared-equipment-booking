@@ -23,9 +23,9 @@ export type ButtonProps =
       });
 
 const variantClasses = {
-  primary: "bg-primary text-primary-contrast shadow-xs hover:bg-primary-hover hover:shadow-emerald active:bg-primary-active",
-  secondary: "bg-surface text-foreground border-border shadow-xs hover:bg-surface-muted hover:border-border-hover",
-  outline: "bg-transparent text-primary border-border-accent hover:bg-primary-subtle hover:border-primary",
+  primary: "bg-primary text-white font-semibold shadow-xs hover:bg-primary-hover hover:shadow-emerald active:bg-primary-active",
+  secondary: "bg-surface text-foreground border border-border shadow-xs hover:bg-surface-muted hover:border-border-hover dark:border-[#364940] hover:dark:border-border-hover",
+  outline: "bg-surface text-primary border border-border hover:bg-primary-subtle hover:border-primary",
   ghost: "bg-transparent text-foreground-secondary border-transparent hover:bg-surface-muted hover:text-foreground",
   danger: "bg-danger text-white hover:opacity-90 hover:shadow-[0_4px_12px_rgba(220,38,38,0.25)]",
 };

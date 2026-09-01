@@ -97,10 +97,14 @@
 
   /* Primary Emerald Accent Tokens — raw runtime values; aliased for
      Tailwind under --color-primary* by the @theme inline block above. */
-  --primary: #059669; /* Emerald 600 */
-  --primary-hover: #047857; /* Emerald 700 */
-  --primary-active: #065F46; /* Emerald 800 */
-  --primary-subtle: #D1FAE5; /* Emerald 100 */
+  --primary: #059669;
+  /* Emerald 600 */
+  --primary-hover: #047857;
+  /* Emerald 700 */
+  --primary-active: #065F46;
+  /* Emerald 800 */
+  --primary-subtle: #D1FAE5;
+  /* Emerald 100 */
   --primary-contrast: #FFFFFF;
   --primary-focus: rgba(5, 150, 105, 0.25);
 
@@ -188,9 +192,12 @@
     --foreground-secondary: #D1D5DB;
     --foreground-muted: #9CA3AF;
 
-    --primary: #10B981; /* Emerald 500 */
-    --primary-hover: #34D399; /* Emerald 400 */
-    --primary-active: #059669; /* Emerald 600 */
+    --primary: #10B981;
+    /* Emerald 500 */
+    --primary-hover: #34D399;
+    /* Emerald 400 */
+    --primary-active: #059669;
+    /* Emerald 600 */
     --primary-subtle: rgba(16, 185, 129, 0.14);
     --primary-contrast: #0B0F0D;
     --primary-focus: rgba(16, 185, 129, 0.35);

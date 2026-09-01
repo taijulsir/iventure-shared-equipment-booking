@@ -6,11 +6,12 @@ import { ApiError } from "@/lib/api/core";
 import type { Equipment } from "@/types/equipment";
 import { Alert } from "@/components/ui/Alert";
 import { Badge } from "@/components/ui/Badge";
-import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { IconArrowRight, IconEquipment } from "@/components/ui/Icons";
 import { formatUtc } from "@/lib/format";
+
+import { BookEquipmentButton } from "@/features/equipment/BookEquipmentButton";
 
 export default async function EquipmentDetailPage({
   params,
@@ -74,7 +75,7 @@ export default async function EquipmentDetailPage({
 
         <div>
           <span className="block text-xs font-semibold uppercase tracking-[0.05em] text-foreground-muted">Description</span>
-          <p className="text-[0.9375rem] text-foreground mt-1 leading-[1.5]">{equipment.description || "No description provided."}</p>
+          <p className="text-[0.9375rem] text-foreground mt-1 leading-[1.5]">{equipment.description || "N/A"}</p>
         </div>
 
         <div>
@@ -82,11 +83,7 @@ export default async function EquipmentDetailPage({
           <p className="text-[0.9375rem] text-foreground mt-1 leading-[1.5] tabular-nums">{formatUtc(equipment.createdAt)}</p>
         </div>
 
-        {isEmployee && (
-          <Button href={`/reservations/new?equipmentId=${equipment.id}`} variant="primary" size="lg" fullWidth>
-            Book this equipment
-          </Button>
-        )}
+        {isEmployee && <BookEquipmentButton equipment={equipment} />}
       </Card>
 
       <Link

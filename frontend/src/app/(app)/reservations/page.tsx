@@ -7,11 +7,12 @@ import type { Reservation, ReservationStatus } from "@/types/reservation";
 import type { PaginationMeta } from "@/types/pagination";
 import { Alert } from "@/components/ui/Alert";
 import { Badge } from "@/components/ui/Badge";
-import { Button } from "@/components/ui/Button";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Pagination } from "@/components/ui/Pagination";
+import { TableContainer } from "@/components/ui/TableContainer";
 import { ReservationTable } from "@/features/reservations/ReservationTable";
 import { ReservationFilters } from "@/features/reservations/ReservationFilters";
+import { NewReservationButton } from "@/features/reservations/NewReservationButton";
 
 const PAGE_LIMIT = 20;
 const VALID_STATUSES: ReservationStatus[] = ["PENDING", "CONFIRMED", "REJECTED", "CANCELLED"];
@@ -71,49 +72,44 @@ export default async function ReservationsPage({
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <PageHeader
-        title={isAdmin ? "All Company Reservations" : "My Reservations"}
-        subtitle={
-          isAdmin
-            ? "Monitor active and upcoming reservations across every team member."
-            : "Review your equipment schedules, approval progress, and active bookings."
-        }
-        badge={
-          meta && (
-            <Badge tone="neutral" showDot={false}>
-              {meta.total} {meta.total === 1 ? "Booking" : "Bookings"}
-            </Badge>
-          )
-        }
-        action={
-          isEmployee && (
-            <Button href="/reservations/new" variant="primary" size="md">
-              New Reservation
-            </Button>
-          )
-        }
-      />
+    <div className="flex flex-col gap-4 flex-1 min-h-0">
+      <div className="shrink-0 flex flex-col gap-4">
+        <PageHeader
+          title={isAdmin ? "All Company Reservations" : "My Reservations"}
+          subtitle={
+            isAdmin
+              ? "Monitor active and upcoming reservations across every team member."
+              : "Review your equipment schedules, approval progress, and active bookings."
+          }
+          badge={
+            meta && (
+              <Badge tone="neutral" showDot={false}>
+                {meta.total} {meta.total === 1 ? "Booking" : "Bookings"}
+              </Badge>
+            )
+          }
+          action={isEmployee ? <NewReservationButton /> : null}
+        />
 
-      <ReservationFilters initialStatus={status ?? ""} />
+        <ReservationFilters initialStatus={status ?? ""} />
+      </div>
 
       {errorMessage ? (
         <Alert variant="error" title="Failed to load reservations">
           {errorMessage}
         </Alert>
       ) : (
-        <>
-          <div className="bg-surface border border-border rounded-[var(--radius-lg)] overflow-hidden shadow-xs">
-            <ReservationTable
-              reservations={reservations ?? []}
-              currentUserId={user.id}
-              equipmentNameById={equipmentNameById}
-              showOwner={isAdmin}
-              isAdmin={isAdmin}
-            />
-          </div>
-          {meta && <Pagination meta={meta} buildHref={buildHref} />}
-        </>
+        <TableContainer
+          pagination={meta && meta.totalPages > 1 ? <Pagination meta={meta} buildHref={buildHref} /> : null}
+        >
+          <ReservationTable
+            reservations={reservations ?? []}
+            currentUserId={user.id}
+            equipmentNameById={equipmentNameById}
+            showOwner={isAdmin}
+            isAdmin={isAdmin}
+          />
+        </TableContainer>
       )}
     </div>
   );

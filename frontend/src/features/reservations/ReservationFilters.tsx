@@ -1,11 +1,9 @@
 "use client";
 
-import type { ChangeEvent } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Select } from "@/components/ui/Select";
 
-const STATUS_OPTIONS = [
-  { label: "All statuses", value: "" },
+const STATUS_TABS = [
+  { label: "All", value: "" },
   { label: "Pending", value: "PENDING" },
   { label: "Confirmed", value: "CONFIRMED" },
   { label: "Rejected", value: "REJECTED" },
@@ -16,11 +14,12 @@ export function ReservationFilters({ initialStatus }: { initialStatus: string })
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const currentStatus = searchParams.get("status") ?? initialStatus ?? "";
 
-  function handleChange(event: ChangeEvent<HTMLSelectElement>) {
+  function handleSelectStatus(statusValue: string) {
     const params = new URLSearchParams(searchParams.toString());
-    if (event.target.value) {
-      params.set("status", event.target.value);
+    if (statusValue) {
+      params.set("status", statusValue);
     } else {
       params.delete("status");
     }
@@ -29,13 +28,31 @@ export function ReservationFilters({ initialStatus }: { initialStatus: string })
   }
 
   return (
-    <div className="max-w-[220px]">
-      <Select
-        label="Filter by status"
-        options={STATUS_OPTIONS}
-        defaultValue={initialStatus}
-        onChange={handleChange}
-      />
+    <div className="w-full overflow-x-auto pb-1">
+      <nav
+        className="inline-flex items-center gap-1 p-1 bg-surface-muted border border-border rounded-[var(--radius-md)] shrink-0"
+        aria-label="Filter reservations by status"
+      >
+        {STATUS_TABS.map((tab) => {
+          const isActive = currentStatus === tab.value;
+          return (
+            <button
+              key={tab.value}
+              type="button"
+              onClick={() => handleSelectStatus(tab.value)}
+              className={[
+                "px-3.5 py-1.5 rounded-[var(--radius-sm)] text-xs sm:text-sm font-medium cursor-pointer transition-all duration-150 whitespace-nowrap",
+                isActive
+                  ? "bg-surface text-foreground font-semibold shadow-xs border border-border"
+                  : "text-foreground-secondary hover:text-foreground hover:bg-surface border border-transparent",
+              ].join(" ")}
+              aria-current={isActive ? "page" : undefined}
+            >
+              {tab.label}
+            </button>
+          );
+        })}
+      </nav>
     </div>
   );
 }

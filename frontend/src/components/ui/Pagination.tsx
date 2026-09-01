@@ -16,7 +16,7 @@ export function Pagination({
   const hasNext = meta.page < meta.totalPages;
 
   return (
-    <nav className="flex items-center justify-center gap-4 pt-2 flex-wrap" aria-label="Pagination">
+    <nav className="flex items-center justify-center gap-4 flex-wrap w-full" aria-label="Pagination">
       {hasPrev ? (
         <Button href={buildHref(meta.page - 1)} variant="outline" size="sm">
           Previous

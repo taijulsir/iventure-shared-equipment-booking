@@ -44,8 +44,8 @@ export default function DashboardPage() {
 
         <div className="flex items-center gap-3 flex-wrap shrink-0">
           <Button href="/equipment" variant="primary" size="md">
-            <span>Browse catalogue</span>
-            <IconChevronRight size={16} />
+            <span className="text-white">Browse catalogue</span>
+            <IconChevronRight className="text-white" size={16} />
           </Button>
           <Button href="/reservations" variant="secondary" size="md">
             {isAdmin ? "All Reservations" : "My Bookings"}
