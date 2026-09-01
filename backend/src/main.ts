@@ -3,12 +3,15 @@ import { ConfigService } from '@nestjs/config';
 import { ValidationPipe } from '@nestjs/common';
 import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module.js';
+import { AllExceptionsFilter } from './common/all-exceptions.filter.js';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const configService = app.get(ConfigService);
 
   app.use(cookieParser());
+
+  app.useGlobalFilters(new AllExceptionsFilter());
 
   // whitelist + forbidNonWhitelisted: unknown properties (e.g. a
   // client-supplied `role` on the registration payload) are rejected rather

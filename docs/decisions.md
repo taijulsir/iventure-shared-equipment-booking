@@ -802,4 +802,38 @@ Separately, `backend/package.json` gained a `postinstall: prisma generate` scrip
 
 A push to `main` that passes CI deploys itself, end-to-end, with a real health check gating success — with no GitHub secret ever holding a database password, JWT signing secret, or any other application credential.
 
-````
+---
+
+## 22. Lightweight Backend Application Logging
+
+### Context
+
+Production troubleshooting and container operations on a VPS require visible, structured logs on `stdout`/`stderr` without introducing heavyweight external logging aggregators (such as Winston, Pino, ELK, or Grafana Loki) that exceed the scope of a single-VPS application.
+
+### Decision
+
+Use NestJS's built-in `Logger` across three coordinated layers:
+
+1. **HTTP Request Logging Middleware (`LoggingMiddleware`)**:
+   - Logs method, URL path, HTTP status code, and response duration in ms (e.g. `POST /reservations 201 - 24ms`).
+   - Suppresses routine `/health` check polling to prevent log clutter.
+   - Categorizes outputs by status (informational for 2xx/3xx, warning for 4xx, error for 5xx).
+
+2. **Global Exception Filter (`AllExceptionsFilter`)**:
+   - Catches unexpected unhandled server errors (5xx) and logs full error messages and stack traces to `stderr` with context (`ExceptionsHandler`).
+   - Preserves standard NestJS HTTP error envelopes for `HttpException` without leaking internal stack traces to API clients.
+
+3. **Domain & Security Event Logging**:
+   - Authentication events: successful employee registration, successful user logins (with role), and failed login attempts (normalized email).
+   - Privilege & Governance: SuperAdmin role updates and demotion attempts.
+   - Booking lifecycle: reservation creation, approval, rejection, cancellation, and concurrency conflict warnings.
+
+### Sensitive Data Protection Rules
+
+Logs strictly exclude:
+- Passwords and raw login credentials
+- Password hashes
+- JWT tokens and session cookies
+- `Authorization` and `Cookie` headers
+- `DATABASE_URL` and database passwords
+- Full request bodies or personally identifiable bulk payloads

@@ -1,23 +1,3 @@
-# Production stack for the VPS: PostgreSQL + backend + frontend, each
-# built from this repo's own Dockerfiles. Separate from docker-compose.yml
-# (which only runs PostgreSQL, for local development against `npm run
-# start:dev` / `next dev`) so a developer's local Docker Compose habits
-# never accidentally touch production configuration.
-#
-# Usage (see docs/deployment.md for the full runbook):
-#   docker compose -f docker-compose.prod.yml --env-file .env.production build
-#   docker compose -f docker-compose.prod.yml --env-file .env.production run --rm backend npx prisma migrate deploy
-#   docker compose -f docker-compose.prod.yml --env-file .env.production up -d
-#
-# `.env.production` (git-ignored, lives only on the VPS — see
-# .env.production.example) supplies every value referenced below.
-#
-# backend and frontend are published to 127.0.0.1 only, not 0.0.0.0: this
-# stack does not terminate TLS or serve public traffic directly. A reverse
-# proxy already running on the VPS (Nginx/Caddy, managed outside this repo)
-# is expected to proxy public HTTPS traffic to these loopback ports — see
-# docs/architecture.md, "Deployment Architecture".
-
 services:
   postgres:
     image: postgres:16-alpine
@@ -38,7 +18,7 @@ services:
     build:
       context: ./backend
     restart: unless-stopped
-    env_file: .env.production
+    env_file: ${ENV_FILE:-.env.production}
     environment:
       NODE_ENV: production
       PORT: "3000"
@@ -46,7 +26,7 @@ services:
       postgres:
         condition: service_healthy
     ports:
-      - "127.0.0.1:3000:3000"
+      - "127.0.0.1:${BACKEND_PORT:-3000}:3000"
 
   frontend:
     build:
@@ -54,13 +34,12 @@ services:
       args:
         NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL}
     restart: unless-stopped
-    # No env_file: NEXT_PUBLIC_API_BASE_URL is already baked into the
-    # client bundle at build time (above), and PORT/HOSTNAME are set in
-    # frontend/Dockerfile. The frontend has no other runtime configuration,
-    # so it is deliberately not given backend secrets (JWT_SECRET,
-    # DATABASE_URL, ...) it has no use for.
+    environment:
+      NODE_ENV: production
+      PORT: "3001"
+      NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL}
     ports:
-      - "127.0.0.1:3001:3001"
+      - "127.0.0.1:${FRONTEND_PORT:-3001}:3001"
 
 volumes:
   postgres_prod_data:

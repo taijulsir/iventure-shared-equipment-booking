@@ -2,6 +2,7 @@ import {
   ConflictException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -11,6 +12,8 @@ import { AssignableRole, type UpdateUserRoleDto } from './dto/update-user-role.d
 
 @Injectable()
 export class UsersService {
+  private readonly logger = new Logger(UsersService.name);
+
   constructor(private readonly prisma: PrismaService) {}
 
   private toSafeUser(user: {
@@ -74,10 +77,14 @@ export class UsersService {
     }
 
     if (targetUser.id === actingUser.sub) {
+      this.logger.warn(`SuperAdmin ${actingUser.sub} attempted self-demotion/role modification`);
       throw new ForbiddenException('You cannot change your own role');
     }
 
     if (targetUser.role === Role.SUPERADMIN) {
+      this.logger.warn(
+        `Attempted role modification on SuperAdmin account (${targetUser.email}) by ${actingUser.sub}`,
+      );
       throw new ForbiddenException("The SuperAdmin's role cannot be changed through this endpoint");
     }
 
@@ -96,6 +103,10 @@ export class UsersService {
       where: { id: targetUserId },
       data: { role: dto.role },
     });
+
+    this.logger.log(
+      `Role updated: user ${targetUser.email} (${targetUserId}) changed from ${targetUser.role} to ${dto.role} by SuperAdmin (${actingUser.sub})`,
+    );
 
     return this.toSafeUser(updated);
   }
