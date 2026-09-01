@@ -768,4 +768,38 @@ Every `GET /equipment` list item now carries an `available` field it didn't befo
 
 Every scenario that suite covered has a real-route equivalent that already existed elsewhere before this removal: 401-before-403 and invalid-token handling (`auth.e2e-spec.ts`, and every other suite's unauthenticated-request cases), an Administrator-only route granting/denying by role (Equipment create, `equipment.e2e-spec.ts`), an Employee-only route doing the same (Reservation create, `reservation.e2e-spec.ts`), and ownership (an Employee reading their own vs. another's reservation, and an Administrator/SuperAdmin's documented exemption from it, all in `reservation.e2e-spec.ts`). Nothing was deleted without a like-for-like real-route test already covering it.
 
+## 21. CI/CD Pipeline and VPS Deployment
+
+### Context
+
+The project had no automated CI or deployment path: tests, lint, and Postman regressions were only ever run by hand, and there was no Dockerfile, production Compose file, or documented deployment procedure. `docs/requirements.md`'s submission expectations prefer a deployed version, and the project already had a working `docker-compose.yml` (PostgreSQL only) and a hand-authored Postman/Newman suite to build on.
+
+### Decision: GitHub Actions, two workflows
+
+CI (`.github/workflows/ci.yml`) runs on pull requests into `development`/`main` and on pushes to either. It reuses the project's own scripts exactly as documented in each package's `package.json` (`lint`, `test`, `test:e2e`, `build`, `test:api`) rather than reimplementing any check inline in the workflow — the goal was automation of existing conventions, not a parallel set of CI-only checks.
+
+Deploy (`.github/workflows/deploy.yml`) is a separate workflow triggered by `workflow_run` on CI's completion, filtered to `main` and `conclusion == 'success'`. This was chosen over a single combined workflow so the "CI → deploy, only on main, only if CI passed" dependency is structural (a second workflow that literally cannot start until the first reports success) rather than enforced by an `if:` condition inside one large workflow, which is easier to accidentally weaken later.
+
+### Decision: build on the VPS over SSH, not a container registry
+
+Deploying pushes no image to a registry (GHCR, Docker Hub, ...); instead, the deploy workflow SSHes into the VPS and has it `git fetch`/`checkout` the deployed commit and run `docker compose build` locally. For a single-VPS project of this scope, a registry adds a moving part (auth, storage, image pruning) without a benefit a single always-on host actually needs — image pull speed and multi-host distribution, the two things a registry is for, aren't relevant here. If the project ever needs to deploy to more than one host, revisit this.
+
+### Decision: secrets stay off GitHub entirely where possible
+
+GitHub Actions secrets are limited to what is needed to reach the VPS (`VPS_HOST`, `VPS_USER`, `VPS_SSH_PRIVATE_KEY`, `VPS_SSH_PORT`, `VPS_DEPLOY_PATH`). Every application secret — database credentials, `JWT_SECRET`, the frontend's build-time API base URL, the SuperAdmin bootstrap credentials — lives only in `.env.production` on the VPS itself, read locally by `docker compose` there. GitHub never creates, stores, or transmits that file. This was chosen deliberately over injecting application secrets as GitHub secrets and passing them over SSH: it minimizes what a compromised GitHub Actions run (or a leaked Actions secret) could expose, and it means rotating an application secret never requires touching GitHub at all. The VPS's own repository access, in turn, uses a separate, read-only Deploy Key that never leaves the VPS and is never a GitHub secret either — see `docs/deployment.md`, "One-time VPS setup".
+
+### Decision: migrate-then-cutover, no automated rollback
+
+`prisma migrate deploy` runs once via `docker compose run --rm backend ...` — a one-off container from the newly built image — before `docker compose up -d` recreates the running backend/frontend containers. This applies the migration while the previous containers are still serving traffic, then cuts over, rather than migrating inside the same container that's about to restart. There is no automated rollback: a failed health/smoke check fails the workflow loudly (see `docs/deployment.md`, "Rolling back" for the manual procedure) rather than attempting to automatically revert containers or migrations. Building that safely (especially un-applying a migration) is a meaningfully larger undertaking than this project's scope calls for; a clear failure an operator responds to was judged the better trade-off than a partially-automated rollback that could itself fail silently.
+
+### Decision: Docker base images and `postinstall`
+
+Both `backend/Dockerfile` and `frontend/Dockerfile` use `node:22-bookworm-slim` rather than an Alpine base. Two dependencies in this stack — `bcrypt` (backend, native bindings) and `@tailwindcss/postcss`'s Rust engine (frontend) — are most reliably prebuilt against glibc; Alpine's musl libc occasionally lacks a matching prebuild and silently falls back to a slower, less deterministic source compile. Debian-slim avoids that risk for a modest image-size cost, which matters more here than shaving the last few megabytes off a single-VPS deployment.
+
+Separately, `backend/package.json` gained a `postinstall: prisma generate` script, which did not exist before. Its absence was a real gap once builds needed to happen non-interactively (Docker, CI) rather than by a developer who already knows to run `npx prisma generate` manually — without it, a clean `npm ci` leaves the generated client missing entirely.
+
+### Consequence
+
+A push to `main` that passes CI deploys itself, end-to-end, with a real health check gating success — with no GitHub secret ever holding a database password, JWT signing secret, or any other application credential.
+
 ````
