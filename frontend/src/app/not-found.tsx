@@ -4,70 +4,20 @@ import { IconArrowRight } from "@/components/ui/Icons";
 
 export default function NotFound() {
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: "2rem",
-        backgroundColor: "var(--background)",
-        textAlign: "center",
-      }}
-    >
-      <div
-        style={{
-          padding: "0.5rem 1rem",
-          borderRadius: "var(--radius-lg)",
-          backgroundColor: "var(--surface-subtle)",
-          border: "1px solid var(--color-border-accent)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          marginBottom: "1.5rem",
-        }}
-      >
+    <div className="min-h-screen flex flex-col items-center justify-center p-8 bg-background text-center">
+      <div className="px-4 py-2 rounded-[var(--radius-lg)] bg-surface-subtle border border-border-accent flex items-center justify-center mb-6">
         <BrandLogo height={40} />
       </div>
 
-
-
-
-      <span
-        style={{
-          fontSize: "0.875rem",
-          fontWeight: 700,
-          color: "var(--color-primary)",
-          letterSpacing: "0.05em",
-          textTransform: "uppercase",
-          marginBottom: "0.5rem",
-        }}
-      >
+      <span className="text-sm font-bold text-primary tracking-[0.05em] uppercase mb-2">
         404 Error
       </span>
 
-      <h1
-        style={{
-          fontSize: "2rem",
-          fontWeight: 800,
-          color: "var(--foreground)",
-          letterSpacing: "-0.02em",
-          marginBottom: "0.75rem",
-        }}
-      >
+      <h1 className="text-[2rem] font-extrabold text-foreground tracking-[-0.02em] mb-3">
         Page Not Found
       </h1>
 
-      <p
-        style={{
-          color: "var(--foreground-muted)",
-          maxWidth: "42ch",
-          lineHeight: 1.5,
-          fontSize: "0.9375rem",
-          marginBottom: "2rem",
-        }}
-      >
+      <p className="text-[0.9375rem] text-foreground-muted max-w-[42ch] leading-[1.5] mb-8">
         The page you are looking for does not exist or may have been moved.
       </p>
 

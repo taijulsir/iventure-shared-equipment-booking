@@ -17,3 +17,11 @@ export interface Reservation {
   createdAt: string;
   updatedAt: string;
 }
+
+/** POST /reservations body. No `status` field — the backend always derives
+ * the initial status from the equipment's requiresApproval flag. */
+export interface CreateReservationInput {
+  equipmentId: string;
+  startTime: string;
+  endTime: string;
+}

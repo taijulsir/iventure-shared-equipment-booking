@@ -710,4 +710,62 @@ over unnecessary complexity.
 
 Any future architectural change should be justified by a concrete requirement or discovered technical constraint.
 
+---
+
+## 16. List Endpoint Pagination and Filtering Consistency
+
+### Context
+
+Equipment listing (`GET /equipment`) already supported `search`/`page`/`limit`, returning `{ data, meta }`. Reservation listing (`GET /reservations`) predated that convention and returned a bare array with no filtering or pagination, which the frontend needed once it moved from static/placeholder screens to a real, filterable Admin reservations view.
+
+### Decision
+
+`GET /reservations` now accepts `status`, `equipmentId`, `page`, and `limit` query parameters (validated via a DTO, same as Equipment's `ListEquipmentDto`) and returns the same `{ data, meta }` envelope as `GET /equipment`, rather than inventing a second list-response shape.
+
+`status`/`equipmentId` narrow the result set on top of the existing ownership scope (an Employee's own reservations, or every reservation for an Administrator/SuperAdmin) — they can never widen it. An Employee filtering by another user's data still only ever searches within their own reservations.
+
+`GET /users` (SUPERADMIN-only) was deliberately left unpaginated: it is an internal administrative listing expected to stay small, not a public catalogue, and pagination/filtering was not required to make the existing User Management UI functional.
+
+### Consequence
+
+This is a breaking change to `GET /reservations`'s response shape (bare array -> `{ data, meta }`). There was no external consumer other than this project's own frontend and Postman collection, both updated in the same change; there is no versioned public API contract to preserve here.
+
+### Rationale
+
+One consistent pagination envelope across every list endpoint is easier for the frontend (and any future API consumer) to work with than one endpoint returning a bare array and another returning an envelope. `PaginationMeta`/`PaginatedResult<T>` were moved to a shared module (`backend/src/common/pagination.ts`) once a second module needed them, rather than duplicated per module or kept in Equipment's own `types.ts` for Reservations to reach into.
+
+## 17. SuperAdmin Reservation Visibility
+
+While integrating the Admin reservations view, `ReservationService` was found to still gate "view all reservations" and "view any reservation by id" on `Role.ADMIN` alone, from before the SuperAdmin role existed. A SuperAdmin session hitting `GET /reservations` saw only their own (typically empty) list instead of every reservation, unlike every other Administrator-level capability, which already followed the SUPERADMIN -> ADMIN -> EMPLOYEE hierarchy (see section 7, "SuperAdmin Role and User Management"). Both checks now also include `Role.SUPERADMIN`, consistent with the rest of the hierarchy. This does not change any Employee-facing behavior and does not touch reservation creation/cancellation, which remain Employee-only exactly as before.
+
+---
+
+## 18. Equipment Availability by Requested Time Window
+
+### Context
+
+`docs/requirements.md` documents equipment search as "availability is determined by the requested time window against existing reservations, not a static equipment flag" — but `GET /equipment` only ever did a text search over name/description; there was no way to ask "is this available for the time I actually want it."
+
+### Decision
+
+`GET /equipment` accepts an optional `startTime`/`endTime` pair (both required together — one without the other, or an inverted range, is a 400). When present, every item in the response is annotated with `available: boolean`; when absent, `available` is `null` (not computed, not a default `true`/`false`). This is never a stored column on Equipment — it's computed fresh on every request, against whichever exact window was asked about, which is the only way "availability" can mean anything for a shared resource with a booking calendar rather than a single on/off state.
+
+The overlap check itself — `newStart < existingEnd AND newEnd > existingStart` against PENDING/CONFIRMED reservations — is not reimplemented for this. It was extracted from `ReservationService`'s existing conflict check into `backend/src/common/reservation-overlap.ts` (`overlappingReservationWhere`), a plain function (not a service, not a cross-module dependency) that both `ReservationService` and `EquipmentService` call against their own already-injected `PrismaService`. Equipment does not need to depend on the Reservation module (or vice versa) to share a WHERE-clause shape.
+
+For a page of equipment, availability is computed with one batched query (`equipmentId: { in: [...] }`) rather than one query per item, avoiding an N+1 pattern for what is otherwise a page of up to 100 rows.
+
+### Consequence
+
+Every `GET /equipment` list item now carries an `available` field it didn't before. This is additive (existing clients ignoring the field are unaffected) and was reused by the frontend catalogue and, indirectly, motivated the `ids` filter in decision 19 below.
+
+## 19. Equipment `ids` Filter
+
+`GET /equipment` also accepts a repeated `ids` query parameter (`?ids=a&ids=b`, capped at 100 like `limit`), returning exactly that set — bypassing search and defaulting `limit` to the set's size rather than the usual page size, so the caller never has to separately compute a matching limit. This exists so a caller that already knows which specific equipment it needs (chiefly: resolving equipment names for a page of reservations, one id per reservation row) doesn't have to either fetch the entire catalogue with an arbitrary cap (silently wrong once the catalogue outgrows it) or make one request per id (N+1). It composes with `search` (both narrow the same query) but not meaningfully with pagination beyond the size-matching default described above.
+
+## 20. Removal of `_authz-demo` Test Scaffolding
+
+`AuthorizationDemoModule`/`AuthorizationDemoController` (`/_authz-demo/*`) existed only to exercise `RolesGuard`, `@Roles`, and `OwnershipService` against real HTTP requests before Equipment or Reservations existed for them to protect — its own code comments said as much from the start, along with "remove once a real ownership-checked route exists." That has been true since Reservations shipped; the module and its dedicated `test/authorization.e2e-spec.ts` have now been removed, along with the (never-populated) reference to it in the Postman collection/README.
+
+Every scenario that suite covered has a real-route equivalent that already existed elsewhere before this removal: 401-before-403 and invalid-token handling (`auth.e2e-spec.ts`, and every other suite's unauthenticated-request cases), an Administrator-only route granting/denying by role (Equipment create, `equipment.e2e-spec.ts`), an Employee-only route doing the same (Reservation create, `reservation.e2e-spec.ts`), and ownership (an Employee reading their own vs. another's reservation, and an Administrator/SuperAdmin's documented exemption from it, all in `reservation.e2e-spec.ts`). Nothing was deleted without a like-for-like real-route test already covering it.
+
 ````

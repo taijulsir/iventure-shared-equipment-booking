@@ -25,6 +25,7 @@ describe('Equipment (e2e)', () => {
 
   let agentEmployee: ReturnType<typeof request.agent>;
   let agentAdmin: ReturnType<typeof request.agent>;
+  let agentSuperAdmin: ReturnType<typeof request.agent>;
   let employeeId: string;
 
   beforeAll(async () => {
@@ -76,6 +77,22 @@ describe('Equipment (e2e)', () => {
     await agentAdmin
       .post('/auth/login')
       .send({ email: adminEmail, password: adminPassword })
+      .expect(200);
+
+    const superAdminEmail = uniqueEmail('superadmin');
+    const superAdminPassword = 'superadmin-password-123';
+    await prisma.user.create({
+      data: {
+        name: 'Equipment Test SuperAdmin',
+        email: superAdminEmail,
+        passwordHash: await hashingService.hash(superAdminPassword),
+        role: Role.SUPERADMIN,
+      },
+    });
+    agentSuperAdmin = request.agent(app.getHttpServer());
+    await agentSuperAdmin
+      .post('/auth/login')
+      .send({ email: superAdminEmail, password: superAdminPassword })
       .expect(200);
   });
 
@@ -303,6 +320,201 @@ describe('Equipment (e2e)', () => {
 
     it('rejects a non-numeric page value', async () => {
       await agentEmployee.get('/equipment').query({ page: 'abc' }).expect(400);
+    });
+  });
+
+  describe('ids filter', () => {
+    let idA: string;
+    let idB: string;
+
+    beforeAll(async () => {
+      const a = await agentAdmin
+        .post('/equipment')
+        .send({ name: `${testEquipmentPrefix} Ids Filter A` })
+        .expect(201);
+      idA = a.body.id;
+
+      const b = await agentAdmin
+        .post('/equipment')
+        .send({ name: `${testEquipmentPrefix} Ids Filter B` })
+        .expect(201);
+      idB = b.body.id;
+
+      // Never matched — proves the filter doesn't just return everything.
+      await agentAdmin
+        .post('/equipment')
+        .send({ name: `${testEquipmentPrefix} Ids Filter Excluded` })
+        .expect(201);
+    });
+
+    it('returns exactly the requested ids, defaulting the limit to the set size', async () => {
+      const response = await agentEmployee
+        .get('/equipment')
+        .query(`ids=${idA}&ids=${idB}`)
+        .expect(200);
+
+      const returnedIds = response.body.data.map((item: { id: string }) => item.id);
+      expect(returnedIds.sort()).toEqual([idA, idB].sort());
+      expect(response.body.meta.limit).toBe(2);
+    });
+
+    it('returns an empty result for an unknown id, not an error', async () => {
+      const response = await agentEmployee
+        .get('/equipment')
+        .query(`ids=00000000-0000-0000-0000-000000000000`)
+        .expect(200);
+
+      expect(response.body.data).toEqual([]);
+      expect(response.body.meta.totalPages).toBe(0);
+    });
+
+    it('rejects a malformed id in the ids filter with 400', async () => {
+      await agentEmployee.get('/equipment').query('ids=not-a-uuid').expect(400);
+    });
+  });
+
+  // Proves the @Roles(Role.ADMIN, Role.SUPERADMIN) grant on these three
+  // routes actually works for a real SUPERADMIN session, not just an
+  // ADMIN one — the write-permissions describe block above only ever used
+  // agentAdmin.
+  describe('SuperAdmin write access (role hierarchy)', () => {
+    it('allows SuperAdmin to create equipment', async () => {
+      const response = await agentSuperAdmin
+        .post('/equipment')
+        .send({ name: `${testEquipmentPrefix} SuperAdmin Created` })
+        .expect(201);
+
+      expect(response.body).toMatchObject({ name: `${testEquipmentPrefix} SuperAdmin Created` });
+    });
+
+    it('allows SuperAdmin to update and delete equipment', async () => {
+      const created = await agentSuperAdmin
+        .post('/equipment')
+        .send({ name: `${testEquipmentPrefix} SuperAdmin Managed` })
+        .expect(201);
+      const id = created.body.id;
+
+      const updated = await agentSuperAdmin
+        .patch(`/equipment/${id}`)
+        .send({ requiresApproval: true })
+        .expect(200);
+      expect(updated.body.requiresApproval).toBe(true);
+
+      await agentSuperAdmin.delete(`/equipment/${id}`).expect(204);
+      await agentSuperAdmin.get(`/equipment/${id}`).expect(404);
+    });
+  });
+
+  describe('availability window', () => {
+    let bookedEquipmentId: string;
+    const windowStart = '2027-05-01T10:00:00.000Z';
+    const windowEnd = '2027-05-01T12:00:00.000Z';
+
+    beforeAll(async () => {
+      await agentAdmin
+        .post('/equipment')
+        .send({ name: `${testEquipmentPrefix} Availability Free` })
+        .expect(201);
+
+      const booked = await agentAdmin
+        .post('/equipment')
+        .send({ name: `${testEquipmentPrefix} Availability Booked` })
+        .expect(201);
+      bookedEquipmentId = booked.body.id;
+
+      await agentEmployee
+        .post('/reservations')
+        .send({ equipmentId: bookedEquipmentId, startTime: windowStart, endTime: windowEnd })
+        .expect(201);
+    });
+
+    it('omits availability (null) when no window is requested', async () => {
+      const response = await agentEmployee
+        .get('/equipment')
+        .query({ search: `${testEquipmentPrefix} Availability` })
+        .expect(200);
+
+      for (const item of response.body.data) {
+        expect(item.available).toBeNull();
+      }
+    });
+
+    it('marks equipment with no overlapping reservation as available', async () => {
+      const response = await agentEmployee
+        .get('/equipment')
+        .query({ search: `${testEquipmentPrefix} Availability Free`, startTime: windowStart, endTime: windowEnd })
+        .expect(200);
+
+      expect(response.body.data).toHaveLength(1);
+      expect(response.body.data[0].available).toBe(true);
+    });
+
+    it('marks equipment with an overlapping active reservation as unavailable', async () => {
+      const response = await agentEmployee
+        .get('/equipment')
+        .query({ search: `${testEquipmentPrefix} Availability Booked`, startTime: windowStart, endTime: windowEnd })
+        .expect(200);
+
+      expect(response.body.data).toHaveLength(1);
+      expect(response.body.data[0].available).toBe(false);
+    });
+
+    it('marks the same equipment available again outside the booked window', async () => {
+      const response = await agentEmployee
+        .get('/equipment')
+        .query({
+          search: `${testEquipmentPrefix} Availability Booked`,
+          startTime: '2027-05-01T13:00:00.000Z',
+          endTime: '2027-05-01T14:00:00.000Z',
+        })
+        .expect(200);
+
+      expect(response.body.data[0].available).toBe(true);
+    });
+
+    it('is unaffected by a REJECTED reservation (does not block the slot)', async () => {
+      const requiresApproval = await agentAdmin
+        .post('/equipment')
+        .send({ name: `${testEquipmentPrefix} Availability Rejected`, requiresApproval: true })
+        .expect(201);
+      const equipmentId = requiresApproval.body.id;
+
+      const reservation = await agentEmployee
+        .post('/reservations')
+        .send({ equipmentId, startTime: windowStart, endTime: windowEnd })
+        .expect(201);
+      expect(reservation.body.status).toBe('PENDING');
+
+      await agentAdmin.patch(`/reservations/${reservation.body.id}/reject`).expect(200);
+
+      const response = await agentEmployee
+        .get('/equipment')
+        .query({ search: `${testEquipmentPrefix} Availability Rejected`, startTime: windowStart, endTime: windowEnd })
+        .expect(200);
+
+      expect(response.body.data[0].available).toBe(true);
+    });
+
+    it('rejects startTime without endTime with 400', async () => {
+      await agentEmployee.get('/equipment').query({ startTime: windowStart }).expect(400);
+    });
+
+    it('rejects endTime without startTime with 400', async () => {
+      await agentEmployee.get('/equipment').query({ endTime: windowEnd }).expect(400);
+    });
+
+    it('rejects startTime that is not before endTime with 400', async () => {
+      await agentEmployee
+        .get('/equipment')
+        .query({ startTime: windowEnd, endTime: windowStart })
+        .expect(400);
+    });
+
+    it('rejects a malformed startTime with 400', async () => {
+      await agentEmployee
+        .get('/equipment')
+        .query({ startTime: 'not-a-date', endTime: windowEnd })
+        .expect(400);
     });
   });
 });

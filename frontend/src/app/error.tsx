@@ -17,67 +17,17 @@ export default function GlobalError({
   }, [error]);
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: "2rem",
-        backgroundColor: "var(--background)",
-      }}
-    >
-      <div
-        style={{
-          width: "100%",
-          maxWidth: "460px",
-          display: "flex",
-          flexDirection: "column",
-          gap: "1.5rem",
-          backgroundColor: "var(--surface)",
-          border: "1px solid var(--color-border)",
-          borderRadius: "var(--radius-xl)",
-          padding: "2rem",
-          boxShadow: "var(--shadow-md)",
-          textAlign: "center",
-          alignItems: "center",
-        }}
-      >
-        <div
-          style={{
-            width: "48px",
-            height: "48px",
-            borderRadius: "var(--radius-full)",
-            backgroundColor: "var(--color-danger-bg)",
-            border: "1px solid var(--color-danger-border)",
-            color: "var(--color-danger)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
+    <div className="min-h-screen flex flex-col items-center justify-center p-8 bg-background">
+      <div className="w-full max-w-[460px] flex flex-col gap-6 bg-surface border border-border rounded-[var(--radius-xl)] p-8 shadow-md text-center items-center">
+        <div className="w-12 h-12 rounded-full bg-danger-bg border border-danger-border text-danger flex items-center justify-center">
           <IconAlertCircle size={24} />
         </div>
 
         <div>
-          <h1
-            style={{
-              fontSize: "1.25rem",
-              fontWeight: 700,
-              color: "var(--foreground)",
-              marginBottom: "0.5rem",
-            }}
-          >
+          <h1 className="text-xl font-bold text-foreground mb-2">
             Unexpected Application Error
           </h1>
-          <p
-            style={{
-              fontSize: "0.875rem",
-              color: "var(--foreground-muted)",
-              lineHeight: 1.5,
-            }}
-          >
+          <p className="text-sm text-foreground-muted leading-[1.5]">
             An unexpected error occurred while rendering this page. You can try refreshing or clicking below.
           </p>
         </div>

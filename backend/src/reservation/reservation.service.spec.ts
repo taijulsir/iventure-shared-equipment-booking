@@ -15,6 +15,7 @@ import type { JwtPayload } from '../auth/types.js';
 const employee: JwtPayload = { sub: 'employee-1', role: Role.EMPLOYEE };
 const otherEmployee: JwtPayload = { sub: 'employee-2', role: Role.EMPLOYEE };
 const admin: JwtPayload = { sub: 'admin-1', role: Role.ADMIN };
+const superAdmin: JwtPayload = { sub: 'superadmin-1', role: Role.SUPERADMIN };
 
 const equipmentNoApproval = {
   id: 'equipment-1',
@@ -63,6 +64,7 @@ describe('ReservationService', () => {
     reservation: {
       findFirst: ReturnType<typeof vi.fn>;
       findMany: ReturnType<typeof vi.fn>;
+      count: ReturnType<typeof vi.fn>;
       findUnique: ReturnType<typeof vi.fn>;
       create: ReturnType<typeof vi.fn>;
       update: ReturnType<typeof vi.fn>;
@@ -75,6 +77,7 @@ describe('ReservationService', () => {
       reservation: {
         findFirst: vi.fn(),
         findMany: vi.fn(),
+        count: vi.fn(),
         findUnique: vi.fn(),
         create: vi.fn(),
         update: vi.fn(),
@@ -257,8 +260,9 @@ describe('ReservationService', () => {
   describe('findAllForUser', () => {
     it('scopes the query to the caller for an Employee', async () => {
       prisma.reservation.findMany.mockResolvedValue([]);
+      prisma.reservation.count.mockResolvedValue(0);
 
-      await reservationService.findAllForUser(employee);
+      await reservationService.findAllForUser(employee, {});
 
       expect(prisma.reservation.findMany).toHaveBeenCalledWith(
         expect.objectContaining({ where: { userId: employee.sub } }),
@@ -267,12 +271,76 @@ describe('ReservationService', () => {
 
     it('applies no ownership filter for an Administrator (views all reservations)', async () => {
       prisma.reservation.findMany.mockResolvedValue([]);
+      prisma.reservation.count.mockResolvedValue(0);
 
-      await reservationService.findAllForUser(admin);
+      await reservationService.findAllForUser(admin, {});
 
       expect(prisma.reservation.findMany).toHaveBeenCalledWith(
         expect.objectContaining({ where: {} }),
       );
+    });
+
+    it('applies no ownership filter for a SuperAdmin either (views all reservations)', async () => {
+      prisma.reservation.findMany.mockResolvedValue([]);
+      prisma.reservation.count.mockResolvedValue(0);
+
+      await reservationService.findAllForUser(superAdmin, {});
+
+      expect(prisma.reservation.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: {} }),
+      );
+    });
+
+    it('ANDs a status filter on top of the ownership scope', async () => {
+      prisma.reservation.findMany.mockResolvedValue([]);
+      prisma.reservation.count.mockResolvedValue(0);
+
+      await reservationService.findAllForUser(employee, { status: ReservationStatus.PENDING });
+
+      expect(prisma.reservation.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { userId: employee.sub, status: ReservationStatus.PENDING },
+        }),
+      );
+    });
+
+    it('ANDs an equipmentId filter on top of the ownership scope', async () => {
+      prisma.reservation.findMany.mockResolvedValue([]);
+      prisma.reservation.count.mockResolvedValue(0);
+
+      await reservationService.findAllForUser(admin, { equipmentId: 'equipment-1' });
+
+      expect(prisma.reservation.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { equipmentId: 'equipment-1' } }),
+      );
+    });
+
+    it('returns a paginated result with default page/limit', async () => {
+      const reservation = sampleReservation();
+      prisma.reservation.findMany.mockResolvedValue([reservation]);
+      prisma.reservation.count.mockResolvedValue(1);
+
+      const result = await reservationService.findAllForUser(employee, {});
+
+      expect(prisma.reservation.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ skip: 0, take: 20 }),
+      );
+      expect(result).toEqual({
+        data: [reservation],
+        meta: { page: 1, limit: 20, total: 1, totalPages: 1 },
+      });
+    });
+
+    it('applies pagination offsets for page > 1', async () => {
+      prisma.reservation.findMany.mockResolvedValue([]);
+      prisma.reservation.count.mockResolvedValue(45);
+
+      const result = await reservationService.findAllForUser(employee, { page: 3, limit: 10 });
+
+      expect(prisma.reservation.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ skip: 20, take: 10 }),
+      );
+      expect(result.meta).toEqual({ page: 3, limit: 10, total: 45, totalPages: 5 });
     });
   });
 
@@ -297,6 +365,14 @@ describe('ReservationService', () => {
       prisma.reservation.findUnique.mockResolvedValue(sampleReservation({ userId: otherEmployee.sub }));
 
       const result = await reservationService.findOne(admin, 'reservation-1');
+
+      expect(result.id).toBe('reservation-1');
+    });
+
+    it('allows a SuperAdmin to access any reservation too', async () => {
+      prisma.reservation.findUnique.mockResolvedValue(sampleReservation({ userId: otherEmployee.sub }));
+
+      const result = await reservationService.findOne(superAdmin, 'reservation-1');
 
       expect(result.id).toBe('reservation-1');
     });

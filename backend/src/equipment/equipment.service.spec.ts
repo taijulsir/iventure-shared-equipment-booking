@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Test, TestingModule } from '@nestjs/testing';
-import { ConflictException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 import { EquipmentService } from './equipment.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { Prisma } from '../generated/prisma/client.js';
@@ -32,6 +32,9 @@ describe('EquipmentService', () => {
       update: ReturnType<typeof vi.fn>;
       delete: ReturnType<typeof vi.fn>;
     };
+    reservation: {
+      findMany: ReturnType<typeof vi.fn>;
+    };
   };
 
   beforeEach(async () => {
@@ -43,6 +46,9 @@ describe('EquipmentService', () => {
         findUnique: vi.fn(),
         update: vi.fn(),
         delete: vi.fn(),
+      },
+      reservation: {
+        findMany: vi.fn(),
       },
     };
 
@@ -84,10 +90,10 @@ describe('EquipmentService', () => {
       const result = await equipmentService.findAll({});
 
       expect(prisma.equipment.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({ where: undefined, skip: 0, take: 20 }),
+        expect.objectContaining({ where: {}, skip: 0, take: 20 }),
       );
       expect(result).toEqual({
-        data: [sampleEquipment],
+        data: [{ ...sampleEquipment, available: null }],
         meta: { page: 1, limit: 20, total: 1, totalPages: 1 },
       });
     });
@@ -127,6 +133,168 @@ describe('EquipmentService', () => {
             { description: { contains: 'camera', mode: 'insensitive' } },
           ],
         },
+      });
+    });
+
+    describe('ids filter', () => {
+      const otherEquipment = { ...sampleEquipment, id: '33333333-3333-3333-3333-333333333333' };
+
+      it('filters by the given ids and defaults the limit to the set size', async () => {
+        prisma.equipment.findMany.mockResolvedValue([sampleEquipment, otherEquipment]);
+        prisma.equipment.count.mockResolvedValue(2);
+
+        const ids = [sampleEquipment.id, otherEquipment.id];
+        const result = await equipmentService.findAll({ ids });
+
+        expect(prisma.equipment.findMany).toHaveBeenCalledWith(
+          expect.objectContaining({ where: { id: { in: ids } }, skip: 0, take: 2 }),
+        );
+        expect(result.meta).toEqual({ page: 1, limit: 2, total: 2, totalPages: 1 });
+      });
+
+      it('an explicit limit still overrides the ids-based default', async () => {
+        prisma.equipment.findMany.mockResolvedValue([sampleEquipment]);
+        prisma.equipment.count.mockResolvedValue(2);
+
+        await equipmentService.findAll({ ids: [sampleEquipment.id, otherEquipment.id], limit: 1 });
+
+        expect(prisma.equipment.findMany).toHaveBeenCalledWith(
+          expect.objectContaining({ take: 1 }),
+        );
+      });
+
+      it('does not divide by zero when given an empty ids array', async () => {
+        prisma.equipment.findMany.mockResolvedValue([]);
+        prisma.equipment.count.mockResolvedValue(0);
+
+        const result = await equipmentService.findAll({ ids: [] });
+
+        expect(result.data).toEqual([]);
+        expect(result.meta.totalPages).toBe(0);
+        expect(Number.isFinite(result.meta.totalPages)).toBe(true);
+      });
+
+      it('composes with search', async () => {
+        prisma.equipment.findMany.mockResolvedValue([sampleEquipment]);
+        prisma.equipment.count.mockResolvedValue(1);
+
+        await equipmentService.findAll({ ids: [sampleEquipment.id], search: 'projector' });
+
+        expect(prisma.equipment.findMany).toHaveBeenCalledWith(
+          expect.objectContaining({
+            where: {
+              id: { in: [sampleEquipment.id] },
+              OR: [
+                { name: { contains: 'projector', mode: 'insensitive' } },
+                { description: { contains: 'projector', mode: 'insensitive' } },
+              ],
+            },
+          }),
+        );
+      });
+    });
+
+    describe('availability window', () => {
+      const otherEquipment = { ...sampleEquipment, id: '22222222-2222-2222-2222-222222222222' };
+
+      it('annotates available: true for equipment with no overlapping active reservation', async () => {
+        prisma.equipment.findMany.mockResolvedValue([sampleEquipment]);
+        prisma.equipment.count.mockResolvedValue(1);
+        prisma.reservation.findMany.mockResolvedValue([]);
+
+        const result = await equipmentService.findAll({
+          startTime: '2027-01-01T10:00:00.000Z',
+          endTime: '2027-01-01T12:00:00.000Z',
+        });
+
+        expect(prisma.reservation.findMany).toHaveBeenCalledWith(
+          expect.objectContaining({
+            where: expect.objectContaining({ equipmentId: { in: [sampleEquipment.id] } }),
+          }),
+        );
+        expect(result.data[0].available).toBe(true);
+      });
+
+      it('annotates available: false for equipment with an overlapping active reservation', async () => {
+        prisma.equipment.findMany.mockResolvedValue([sampleEquipment, otherEquipment]);
+        prisma.equipment.count.mockResolvedValue(2);
+        prisma.reservation.findMany.mockResolvedValue([{ equipmentId: sampleEquipment.id }]);
+
+        const result = await equipmentService.findAll({
+          startTime: '2027-01-01T10:00:00.000Z',
+          endTime: '2027-01-01T12:00:00.000Z',
+        });
+
+        expect(result.data.find((item) => item.id === sampleEquipment.id)?.available).toBe(false);
+        expect(result.data.find((item) => item.id === otherEquipment.id)?.available).toBe(true);
+      });
+
+      it('does not query reservations when the page has no equipment', async () => {
+        prisma.equipment.findMany.mockResolvedValue([]);
+        prisma.equipment.count.mockResolvedValue(0);
+
+        const result = await equipmentService.findAll({
+          startTime: '2027-01-01T10:00:00.000Z',
+          endTime: '2027-01-01T12:00:00.000Z',
+        });
+
+        expect(prisma.reservation.findMany).not.toHaveBeenCalled();
+        expect(result.data).toEqual([]);
+      });
+
+      it('rejects startTime without endTime with 400', async () => {
+        prisma.equipment.findMany.mockResolvedValue([sampleEquipment]);
+        prisma.equipment.count.mockResolvedValue(1);
+
+        await expect(
+          equipmentService.findAll({ startTime: '2027-01-01T10:00:00.000Z' }),
+        ).rejects.toBeInstanceOf(BadRequestException);
+        expect(prisma.reservation.findMany).not.toHaveBeenCalled();
+      });
+
+      it('rejects endTime without startTime with 400', async () => {
+        prisma.equipment.findMany.mockResolvedValue([sampleEquipment]);
+        prisma.equipment.count.mockResolvedValue(1);
+
+        await expect(
+          equipmentService.findAll({ endTime: '2027-01-01T12:00:00.000Z' }),
+        ).rejects.toBeInstanceOf(BadRequestException);
+      });
+
+      it('rejects a startTime that is not before endTime with 400', async () => {
+        prisma.equipment.findMany.mockResolvedValue([sampleEquipment]);
+        prisma.equipment.count.mockResolvedValue(1);
+
+        await expect(
+          equipmentService.findAll({
+            startTime: '2027-01-01T12:00:00.000Z',
+            endTime: '2027-01-01T10:00:00.000Z',
+          }),
+        ).rejects.toBeInstanceOf(BadRequestException);
+        expect(prisma.reservation.findMany).not.toHaveBeenCalled();
+      });
+
+      it('search and availability compose together', async () => {
+        prisma.equipment.findMany.mockResolvedValue([sampleEquipment]);
+        prisma.equipment.count.mockResolvedValue(1);
+        prisma.reservation.findMany.mockResolvedValue([]);
+
+        await equipmentService.findAll({
+          search: 'projector',
+          startTime: '2027-01-01T10:00:00.000Z',
+          endTime: '2027-01-01T12:00:00.000Z',
+        });
+
+        expect(prisma.equipment.findMany).toHaveBeenCalledWith(
+          expect.objectContaining({
+            where: expect.objectContaining({
+              OR: [
+                { name: { contains: 'projector', mode: 'insensitive' } },
+                { description: { contains: 'projector', mode: 'insensitive' } },
+              ],
+            }),
+          }),
+        );
       });
     });
   });

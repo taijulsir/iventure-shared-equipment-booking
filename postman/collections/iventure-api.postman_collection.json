@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "e3a5f7c1-9b2d-4a6e-8f0c-1d3e5b7a9c00",
     "name": "iVenture Shared Equipment Booking API",
-    "description": "# iVenture Shared Equipment Booking API\n\nComplete regression collection for the currently implemented backend: Health, Authentication, Equipment, Reservations, and the Approval workflow.\n\n**Authentication**: this API uses a JWT stored in an HttpOnly cookie named `auth_token` -- there is no `Authorization` header anywhere in this API, and this collection does not invent one. See `postman/README.md` for exactly how multi-user cookie sessions are managed.\n\n**Authorization / RBAC and ownership** are exercised directly against the real Equipment/Reservation/Approval endpoints throughout the collection (each such request is clearly labeled, e.g. \"Employee Forbidden (Error Example)\") rather than a separate synthetic folder -- the only endpoints that exist purely to demonstrate RBAC in isolation (`/​_authz-demo/*`) are explicitly test/support scaffolding in the backend, not part of the product API surface, and are intentionally not included here.\n\n**Test data** is created through the real API wherever possible (an idempotent-per-run `runId` keeps repeated Newman runs from colliding). An Administrator account cannot be created through the API by design (docs/decisions.md, \"Administrator Account Provisioning\") -- see `postman/README.md` for the one-time local seeding step required before Admin-only requests will succeed.\n\nSee `postman/README.md` at the repository root for full setup instructions, known limitations, and how to run this collection with Newman.",
+    "description": "# iVenture Shared Equipment Booking API\n\nComplete regression collection for the currently implemented backend: Health, Authentication, Equipment, Reservations, and the Approval workflow.\n\n**Authentication**: this API uses a JWT stored in an HttpOnly cookie named `auth_token` -- there is no `Authorization` header anywhere in this API, and this collection does not invent one. See `postman/README.md` for exactly how multi-user cookie sessions are managed.\n\n**Authorization / RBAC and ownership** are exercised directly against the real Equipment/Reservation/Approval endpoints throughout the collection (each such request is clearly labeled, e.g. \"Employee Forbidden (Error Example)\") rather than a separate synthetic folder -- the backend used to also carry a small set of `/_authz-demo/*` endpoints purely to demonstrate RBAC in isolation, but those were never part of the product API surface and have since been removed now that real ownership-checked routes cover the same ground; this collection never included them.\n\n**Test data** is created through the real API wherever possible (an idempotent-per-run `runId` keeps repeated Newman runs from colliding). An Administrator account cannot be created through the API by design (docs/decisions.md, \"Administrator Account Provisioning\") -- see `postman/README.md` for the one-time local seeding step required before Admin-only requests will succeed.\n\nSee `postman/README.md` at the repository root for full setup instructions, known limitations, and how to run this collection with Newman.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -1031,6 +1031,106 @@
                   "  const body = pm.response.json();",
                   "  pm.environment.set('adminId', body.id);",
                   "  pm.environment.set('adminToken', pm.cookies.get('auth_token'));",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "req-141",
+          "name": "Login SuperAdmin",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "REQUIRES a SuperAdmin account pre-seeded via `npm run seed:superadmin` (backend/src/scripts/seed-superadmin.ts) matching {{superAdminEmail}}/{{superAdminPassword}} -- public registration cannot create a SuperAdmin, and there is no user-management API path to create one either. If this request fails with 401, every SuperAdmin-only request later in this folder will also fail, and that is the expected/documented behavior, not a bug in the collection.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{superAdminEmail}}\",\n  \"password\": \"{{superAdminPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "id": "req-141-example",
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/auth/login",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "login"
+                  ]
+                },
+                "description": "REQUIRES a SuperAdmin account pre-seeded via `npm run seed:superadmin` (backend/src/scripts/seed-superadmin.ts) matching {{superAdminEmail}}/{{superAdminPassword}} -- public registration cannot create a SuperAdmin, and there is no user-management API path to create one either. If this request fails with 401, every SuperAdmin-only request later in this folder will also fail, and that is the expected/documented behavior, not a bug in the collection.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"{{superAdminEmail}}\",\n  \"password\": \"{{superAdminPassword}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"id\": \"b2c3d4e5-f6a7-4b5c-8d9e-0f1a2b3c4d5e\",\n  \"name\": \"Super Admin\",\n  \"email\": \"superadmin@iventure.local\",\n  \"role\": \"SUPERADMIN\",\n  \"createdAt\": \"2026-09-01T00:00:00.000Z\"\n}"
+            }
+          ],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200 (see request description if this fails)', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Role is SUPERADMIN', function () {",
+                  "  pm.expect(pm.response.json().role).to.eql('SUPERADMIN');",
+                  "});",
+                  "if (pm.response.code === 200) {",
+                  "  const body = pm.response.json();",
+                  "  pm.environment.set('superAdminId', body.id);",
+                  "  pm.environment.set('superAdminToken', pm.cookies.get('auth_token'));",
                   "}"
                 ]
               }
@@ -2338,6 +2438,299 @@
           ]
         },
         {
+          "id": "req-eq-sa-001",
+          "name": "Create Equipment - SuperAdmin Allowed [SuperAdmin]",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/equipment",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "equipment"
+              ]
+            },
+            "description": "Proves the ADMIN|SUPERADMIN role hierarchy grant on this route works for a real SUPERADMIN session, not just an ADMIN one.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Postman SuperAdmin-Managed Equipment {{runId}}\",\n  \"requiresApproval\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "id": "req-eq-sa-001-example",
+              "name": "201 Created",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/equipment",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "equipment"
+                  ]
+                },
+                "description": "Proves the ADMIN|SUPERADMIN role hierarchy grant on this route works for a real SUPERADMIN session, not just an ADMIN one.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Postman SuperAdmin-Managed Equipment {{runId}}\",\n  \"requiresApproval\": false\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"id\": \"...\",\n  \"name\": \"Postman SuperAdmin-Managed Equipment {{runId}}\",\n  \"description\": null,\n  \"requiresApproval\": false,\n  \"createdAt\": \"2026-09-01T00:00:00.000Z\",\n  \"updatedAt\": \"2026-09-01T00:00:00.000Z\"\n}"
+            }
+          ],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Select superAdminToken's session in the shared cookie jar before sending.",
+                  "// Postman's cookie jar can only hold one 'auth_token' value per domain at",
+                  "// a time (the app's real HttpOnly cookie name) -- this project tests",
+                  "// multiple concurrent user sessions, so each request that must act as a",
+                  "// specific user re-selects that user's captured token into the jar right",
+                  "// before sending. See postman/README.md, 'How authentication works'.",
+                  "pm.cookies.jar().set(pm.variables.get('baseUrl'), 'auth_token', pm.variables.get('superAdminToken'), function (err) {",
+                  "  if (err) { console.error('Failed to select superAdminToken', err); }",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 201', function () { pm.response.to.have.status(201); });",
+                  "if (pm.response.code === 201) { pm.environment.set('equipmentSuperAdminManagedId', pm.response.json().id); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "req-eq-sa-002",
+          "name": "Update Equipment - SuperAdmin Allowed [SuperAdmin]",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/equipment/{{equipmentSuperAdminManagedId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "equipment",
+                "{{equipmentSuperAdminManagedId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"requiresApproval\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "id": "req-eq-sa-002-example",
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/equipment/{{equipmentSuperAdminManagedId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "equipment",
+                    "{{equipmentSuperAdminManagedId}}"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"requiresApproval\": true\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"id\": \"{{equipmentSuperAdminManagedId}}\",\n  \"name\": \"Postman SuperAdmin-Managed Equipment {{runId}}\",\n  \"description\": null,\n  \"requiresApproval\": true,\n  \"createdAt\": \"2026-09-01T00:00:00.000Z\",\n  \"updatedAt\": \"2026-09-01T00:00:00.000Z\"\n}"
+            }
+          ],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Select superAdminToken's session in the shared cookie jar before sending.",
+                  "// Postman's cookie jar can only hold one 'auth_token' value per domain at",
+                  "// a time (the app's real HttpOnly cookie name) -- this project tests",
+                  "// multiple concurrent user sessions, so each request that must act as a",
+                  "// specific user re-selects that user's captured token into the jar right",
+                  "// before sending. See postman/README.md, 'How authentication works'.",
+                  "pm.cookies.jar().set(pm.variables.get('baseUrl'), 'auth_token', pm.variables.get('superAdminToken'), function (err) {",
+                  "  if (err) { console.error('Failed to select superAdminToken', err); }",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('requiresApproval was updated', function () { pm.expect(pm.response.json().requiresApproval).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "req-eq-sa-003",
+          "name": "Delete Equipment - SuperAdmin Allowed [SuperAdmin]",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/equipment/{{equipmentSuperAdminManagedId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "equipment",
+                "{{equipmentSuperAdminManagedId}}"
+              ]
+            }
+          },
+          "response": [
+            {
+              "id": "req-eq-sa-003-example",
+              "name": "204 No Content",
+              "originalRequest": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/equipment/{{equipmentSuperAdminManagedId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "equipment",
+                    "{{equipmentSuperAdminManagedId}}"
+                  ]
+                }
+              },
+              "status": "No Content",
+              "code": 204,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": ""
+            }
+          ],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Select superAdminToken's session in the shared cookie jar before sending.",
+                  "// Postman's cookie jar can only hold one 'auth_token' value per domain at",
+                  "// a time (the app's real HttpOnly cookie name) -- this project tests",
+                  "// multiple concurrent user sessions, so each request that must act as a",
+                  "// specific user re-selects that user's captured token into the jar right",
+                  "// before sending. See postman/README.md, 'How authentication works'.",
+                  "pm.cookies.jar().set(pm.variables.get('baseUrl'), 'auth_token', pm.variables.get('superAdminToken'), function (err) {",
+                  "  if (err) { console.error('Failed to select superAdminToken', err); }",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 204', function () { pm.response.to.have.status(204); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
           "id": "req-050",
           "name": "List Equipment [Employee]",
           "request": {
@@ -2509,6 +2902,523 @@
                   "    const haystack = (item.name + ' ' + (item.description || '')).toLowerCase();",
                   "    pm.expect(haystack).to.include('camera');",
                   "  });",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "req-eq-page-001",
+          "name": "List Equipment - Page Beyond Last Page [Employee]",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/equipment?search=Postman Camera&page=999",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "equipment"
+              ],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "Postman Camera",
+                  "disabled": false
+                },
+                {
+                  "key": "page",
+                  "value": "999",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": "A page number past the last real page returns an empty data array with accurate meta (never a 404) -- pagination metadata is trustworthy at any page, not just the first."
+          },
+          "response": [
+            {
+              "id": "req-eq-page-001-example",
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/equipment?search=Postman Camera&page=999",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "equipment"
+                  ],
+                  "query": [
+                    {
+                      "key": "search",
+                      "value": "Postman Camera",
+                      "disabled": false
+                    },
+                    {
+                      "key": "page",
+                      "value": "999",
+                      "disabled": false
+                    }
+                  ]
+                },
+                "description": "A page number past the last real page returns an empty data array with accurate meta (never a 404) -- pagination metadata is trustworthy at any page, not just the first."
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"data\": [],\n  \"meta\": { \"page\": 999, \"limit\": 20, \"total\": 1, \"totalPages\": 1 }\n}"
+            }
+          ],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Select employeeAToken's session in the shared cookie jar before sending.",
+                  "// Postman's cookie jar can only hold one 'auth_token' value per domain at",
+                  "// a time (the app's real HttpOnly cookie name) -- this project tests",
+                  "// multiple concurrent user sessions, so each request that must act as a",
+                  "// specific user re-selects that user's captured token into the jar right",
+                  "// before sending. See postman/README.md, 'How authentication works'.",
+                  "pm.cookies.jar().set(pm.variables.get('baseUrl'), 'auth_token', pm.variables.get('employeeAToken'), function (err) {",
+                  "  if (err) { console.error('Failed to select employeeAToken', err); }",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200, not 404', function () { pm.response.to.have.status(200); });",
+                  "pm.test('data is empty but meta stays accurate', function () {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.data).to.eql([]);",
+                  "  pm.expect(body.meta.page).to.eql(999);",
+                  "  pm.expect(body.meta.total).to.be.at.least(1);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "req-eq-avail-001",
+          "name": "List Equipment - Availability Window (Available) [Employee]",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/equipment?search=Postman Camera&startTime=2099-01-01T10:00:00.000Z&endTime=2099-01-01T12:00:00.000Z",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "equipment"
+              ],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "Postman Camera",
+                  "disabled": false
+                },
+                {
+                  "key": "startTime",
+                  "value": "2099-01-01T10:00:00.000Z",
+                  "disabled": false
+                },
+                {
+                  "key": "endTime",
+                  "value": "2099-01-01T12:00:00.000Z",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": "A window far enough in the future that nothing else in this collection could have booked it -- demonstrates `available: true`."
+          },
+          "response": [
+            {
+              "id": "req-eq-avail-001-example",
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/equipment?search=Postman Camera&startTime=2099-01-01T10:00:00.000Z&endTime=2099-01-01T12:00:00.000Z",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "equipment"
+                  ],
+                  "query": [
+                    {
+                      "key": "search",
+                      "value": "Postman Camera",
+                      "disabled": false
+                    },
+                    {
+                      "key": "startTime",
+                      "value": "2099-01-01T10:00:00.000Z",
+                      "disabled": false
+                    },
+                    {
+                      "key": "endTime",
+                      "value": "2099-01-01T12:00:00.000Z",
+                      "disabled": false
+                    }
+                  ]
+                },
+                "description": "A window far enough in the future that nothing else in this collection could have booked it -- demonstrates `available: true`."
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"data\": [\n    { \"id\": \"...\", \"name\": \"...\", \"description\": \"...\", \"requiresApproval\": false, \"createdAt\": \"...\", \"updatedAt\": \"...\", \"available\": true }\n  ],\n  \"meta\": { \"page\": 1, \"limit\": 20, \"total\": 1, \"totalPages\": 1 }\n}"
+            }
+          ],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Select employeeAToken's session in the shared cookie jar before sending.",
+                  "// Postman's cookie jar can only hold one 'auth_token' value per domain at",
+                  "// a time (the app's real HttpOnly cookie name) -- this project tests",
+                  "// multiple concurrent user sessions, so each request that must act as a",
+                  "// specific user re-selects that user's captured token into the jar right",
+                  "// before sending. See postman/README.md, 'How authentication works'.",
+                  "pm.cookies.jar().set(pm.variables.get('baseUrl'), 'auth_token', pm.variables.get('employeeAToken'), function (err) {",
+                  "  if (err) { console.error('Failed to select employeeAToken', err); }",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Every result is annotated available: true for this free window', function () {",
+                  "  const body = pm.response.json();",
+                  "  body.data.forEach(function (item) { pm.expect(item.available).to.eql(true); });",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "req-eq-avail-002",
+          "name": "List Equipment - Availability Missing endTime (Error Example)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/equipment?startTime=2099-01-01T10:00:00.000Z",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "equipment"
+              ],
+              "query": [
+                {
+                  "key": "startTime",
+                  "value": "2099-01-01T10:00:00.000Z",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": "startTime and endTime are both-or-neither -- supplying only one is a 400, not silently ignored."
+          },
+          "response": [
+            {
+              "id": "req-eq-avail-002-example",
+              "name": "400 Bad Request",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/equipment?startTime=2099-01-01T10:00:00.000Z",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "equipment"
+                  ],
+                  "query": [
+                    {
+                      "key": "startTime",
+                      "value": "2099-01-01T10:00:00.000Z",
+                      "disabled": false
+                    }
+                  ]
+                },
+                "description": "startTime and endTime are both-or-neither -- supplying only one is a 400, not silently ignored."
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"message\": \"startTime and endTime must both be provided to check availability\",\n  \"error\": \"Bad Request\",\n  \"statusCode\": 400\n}"
+            }
+          ],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Select employeeAToken's session in the shared cookie jar before sending.",
+                  "// Postman's cookie jar can only hold one 'auth_token' value per domain at",
+                  "// a time (the app's real HttpOnly cookie name) -- this project tests",
+                  "// multiple concurrent user sessions, so each request that must act as a",
+                  "// specific user re-selects that user's captured token into the jar right",
+                  "// before sending. See postman/README.md, 'How authentication works'.",
+                  "pm.cookies.jar().set(pm.variables.get('baseUrl'), 'auth_token', pm.variables.get('employeeAToken'), function (err) {",
+                  "  if (err) { console.error('Failed to select employeeAToken', err); }",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 400', function () { pm.response.to.have.status(400); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "req-eq-avail-003",
+          "name": "List Equipment - Availability Invalid Range (Error Example)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/equipment?startTime=2099-01-01T12:00:00.000Z&endTime=2099-01-01T10:00:00.000Z",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "equipment"
+              ],
+              "query": [
+                {
+                  "key": "startTime",
+                  "value": "2099-01-01T12:00:00.000Z",
+                  "disabled": false
+                },
+                {
+                  "key": "endTime",
+                  "value": "2099-01-01T10:00:00.000Z",
+                  "disabled": false
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "id": "req-eq-avail-003-example",
+              "name": "400 Bad Request",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/equipment?startTime=2099-01-01T12:00:00.000Z&endTime=2099-01-01T10:00:00.000Z",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "equipment"
+                  ],
+                  "query": [
+                    {
+                      "key": "startTime",
+                      "value": "2099-01-01T12:00:00.000Z",
+                      "disabled": false
+                    },
+                    {
+                      "key": "endTime",
+                      "value": "2099-01-01T10:00:00.000Z",
+                      "disabled": false
+                    }
+                  ]
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"message\": \"startTime must be before endTime\",\n  \"error\": \"Bad Request\",\n  \"statusCode\": 400\n}"
+            }
+          ],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Select employeeAToken's session in the shared cookie jar before sending.",
+                  "// Postman's cookie jar can only hold one 'auth_token' value per domain at",
+                  "// a time (the app's real HttpOnly cookie name) -- this project tests",
+                  "// multiple concurrent user sessions, so each request that must act as a",
+                  "// specific user re-selects that user's captured token into the jar right",
+                  "// before sending. See postman/README.md, 'How authentication works'.",
+                  "pm.cookies.jar().set(pm.variables.get('baseUrl'), 'auth_token', pm.variables.get('employeeAToken'), function (err) {",
+                  "  if (err) { console.error('Failed to select employeeAToken', err); }",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 400', function () { pm.response.to.have.status(400); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "req-eq-ids-001",
+          "name": "List Equipment - Filter by Ids [Employee]",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/equipment?ids={{equipmentNoApprovalId}}&ids={{equipmentApprovalId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "equipment"
+              ],
+              "query": [
+                {
+                  "key": "ids",
+                  "value": "{{equipmentNoApprovalId}}",
+                  "disabled": false
+                },
+                {
+                  "key": "ids",
+                  "value": "{{equipmentApprovalId}}",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": "Fetches exactly these two known items, bypassing search/pagination -- what the frontend uses to resolve equipment names for a page of reservations without capping at some fixed catalogue size."
+          },
+          "response": [
+            {
+              "id": "req-eq-ids-001-example",
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/equipment?ids={{equipmentNoApprovalId}}&ids={{equipmentApprovalId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "equipment"
+                  ],
+                  "query": [
+                    {
+                      "key": "ids",
+                      "value": "{{equipmentNoApprovalId}}",
+                      "disabled": false
+                    },
+                    {
+                      "key": "ids",
+                      "value": "{{equipmentApprovalId}}",
+                      "disabled": false
+                    }
+                  ]
+                },
+                "description": "Fetches exactly these two known items, bypassing search/pagination -- what the frontend uses to resolve equipment names for a page of reservations without capping at some fixed catalogue size."
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"data\": [ { \"id\": \"{{equipmentNoApprovalId}}\", \"...\": \"...\" }, { \"id\": \"{{equipmentApprovalId}}\", \"...\": \"...\" } ],\n  \"meta\": { \"page\": 1, \"limit\": 2, \"total\": 2, \"totalPages\": 1 }\n}"
+            }
+          ],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Select employeeAToken's session in the shared cookie jar before sending.",
+                  "// Postman's cookie jar can only hold one 'auth_token' value per domain at",
+                  "// a time (the app's real HttpOnly cookie name) -- this project tests",
+                  "// multiple concurrent user sessions, so each request that must act as a",
+                  "// specific user re-selects that user's captured token into the jar right",
+                  "// before sending. See postman/README.md, 'How authentication works'.",
+                  "pm.cookies.jar().set(pm.variables.get('baseUrl'), 'auth_token', pm.variables.get('employeeAToken'), function (err) {",
+                  "  if (err) { console.error('Failed to select employeeAToken', err); }",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Returns exactly the requested ids', function () {",
+                  "  const ids = pm.response.json().data.map(function (item) { return item.id; });",
+                  "  pm.expect(ids.sort()).to.eql([pm.variables.get('equipmentNoApprovalId'), pm.variables.get('equipmentApprovalId')].sort());",
                   "});"
                 ]
               }
@@ -3591,6 +4501,120 @@
           ]
         },
         {
+          "id": "req-eq-avail-004",
+          "name": "List Equipment - Availability Window (Booked) [Employee]",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/equipment?ids={{equipmentNoApprovalId}}&startTime=2027-06-01T10:00:00.000Z&endTime=2027-06-01T12:00:00.000Z",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "equipment"
+              ],
+              "query": [
+                {
+                  "key": "ids",
+                  "value": "{{equipmentNoApprovalId}}",
+                  "disabled": false
+                },
+                {
+                  "key": "startTime",
+                  "value": "2027-06-01T10:00:00.000Z",
+                  "disabled": false
+                },
+                {
+                  "key": "endTime",
+                  "value": "2027-06-01T12:00:00.000Z",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": "Exactly the window just booked by the CONFIRMED reservation above -- demonstrates `available: false`."
+          },
+          "response": [
+            {
+              "id": "req-eq-avail-004-example",
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/equipment?ids={{equipmentNoApprovalId}}&startTime=2027-06-01T10:00:00.000Z&endTime=2027-06-01T12:00:00.000Z",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "equipment"
+                  ],
+                  "query": [
+                    {
+                      "key": "ids",
+                      "value": "{{equipmentNoApprovalId}}",
+                      "disabled": false
+                    },
+                    {
+                      "key": "startTime",
+                      "value": "2027-06-01T10:00:00.000Z",
+                      "disabled": false
+                    },
+                    {
+                      "key": "endTime",
+                      "value": "2027-06-01T12:00:00.000Z",
+                      "disabled": false
+                    }
+                  ]
+                },
+                "description": "Exactly the window just booked by the CONFIRMED reservation above -- demonstrates `available: false`."
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"data\": [ { \"id\": \"{{equipmentNoApprovalId}}\", \"...\": \"...\", \"available\": false } ],\n  \"meta\": { \"page\": 1, \"limit\": 1, \"total\": 1, \"totalPages\": 1 }\n}"
+            }
+          ],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Select employeeAToken's session in the shared cookie jar before sending.",
+                  "// Postman's cookie jar can only hold one 'auth_token' value per domain at",
+                  "// a time (the app's real HttpOnly cookie name) -- this project tests",
+                  "// multiple concurrent user sessions, so each request that must act as a",
+                  "// specific user re-selects that user's captured token into the jar right",
+                  "// before sending. See postman/README.md, 'How authentication works'.",
+                  "pm.cookies.jar().set(pm.variables.get('baseUrl'), 'auth_token', pm.variables.get('employeeAToken'), function (err) {",
+                  "  if (err) { console.error('Failed to select employeeAToken', err); }",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('The just-booked equipment is available: false for this window', function () {",
+                  "  pm.expect(pm.response.json().data[0].available).to.eql(false);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
           "id": "req-079",
           "name": "Create Reservation - Requires Approval -> PENDING [Employee A]",
           "request": {
@@ -4603,7 +5627,7 @@
                 }
               ],
               "cookie": [],
-              "body": "[\n  {\n    \"id\": \"4d3c2b1a-0f9e-4d8c-7b6a-5f4e3d2c1b0a\",\n    \"userId\": \"3f1b6c9a-2a4e-4e1a-9c2b-8a1e6f7d0c11\",\n    \"equipmentId\": \"9e8d7c6b-5a4f-4e3d-8c2b-1a0f9e8d7c6b\",\n    \"startTime\": \"2027-06-01T10:00:00.000Z\",\n    \"endTime\": \"2027-06-01T12:00:00.000Z\",\n    \"status\": \"CONFIRMED\",\n    \"createdAt\": \"2026-09-01T00:00:00.000Z\",\n    \"updatedAt\": \"2026-09-01T00:00:00.000Z\"\n  }\n]"
+              "body": "{\n  \"data\": [\n    {\n      \"id\": \"4d3c2b1a-0f9e-4d8c-7b6a-5f4e3d2c1b0a\",\n      \"userId\": \"3f1b6c9a-2a4e-4e1a-9c2b-8a1e6f7d0c11\",\n      \"equipmentId\": \"9e8d7c6b-5a4f-4e3d-8c2b-1a0f9e8d7c6b\",\n      \"startTime\": \"2027-06-01T10:00:00.000Z\",\n      \"endTime\": \"2027-06-01T12:00:00.000Z\",\n      \"status\": \"CONFIRMED\",\n      \"createdAt\": \"2026-09-01T00:00:00.000Z\",\n      \"updatedAt\": \"2026-09-01T00:00:00.000Z\"\n    }\n  ],\n  \"meta\": { \"page\": 1, \"limit\": 20, \"total\": 1, \"totalPages\": 1 }\n}"
             }
           ],
           "event": [
@@ -4632,8 +5656,12 @@
                   "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
                   "pm.test('Every reservation belongs to Employee A', function () {",
                   "  const body = pm.response.json();",
-                  "  pm.expect(body).to.be.an('array');",
-                  "  body.forEach(function (r) { pm.expect(r.userId).to.eql(pm.variables.get('employeeAId')); });",
+                  "  pm.expect(body.data).to.be.an('array');",
+                  "  body.data.forEach(function (r) { pm.expect(r.userId).to.eql(pm.variables.get('employeeAId')); });",
+                  "});",
+                  "pm.test('Response includes pagination meta', function () {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.meta).to.have.all.keys('page', 'limit', 'total', 'totalPages');",
                   "});"
                 ]
               }
@@ -4685,7 +5713,7 @@
                 }
               ],
               "cookie": [],
-              "body": "[\n  {\n    \"id\": \"4d3c2b1a-0f9e-4d8c-7b6a-5f4e3d2c1b0a\",\n    \"userId\": \"3f1b6c9a-2a4e-4e1a-9c2b-8a1e6f7d0c11\",\n    \"equipmentId\": \"9e8d7c6b-5a4f-4e3d-8c2b-1a0f9e8d7c6b\",\n    \"startTime\": \"2027-06-01T10:00:00.000Z\",\n    \"endTime\": \"2027-06-01T12:00:00.000Z\",\n    \"status\": \"CONFIRMED\",\n    \"createdAt\": \"2026-09-01T00:00:00.000Z\",\n    \"updatedAt\": \"2026-09-01T00:00:00.000Z\"\n  },\n  {\n    \"id\": \"4d3c2b1a-0f9e-4d8c-7b6a-5f4e3d2c1b0a\",\n    \"userId\": \"7c2d8e4f-1b3a-4c5d-8e6f-9a0b1c2d3e44\",\n    \"equipmentId\": \"9e8d7c6b-5a4f-4e3d-8c2b-1a0f9e8d7c6b\",\n    \"startTime\": \"2027-06-01T10:00:00.000Z\",\n    \"endTime\": \"2027-06-01T12:00:00.000Z\",\n    \"status\": \"CONFIRMED\",\n    \"createdAt\": \"2026-09-01T00:00:00.000Z\",\n    \"updatedAt\": \"2026-09-01T00:00:00.000Z\"\n  }\n]"
+              "body": "{\n  \"data\": [\n    {\n      \"id\": \"4d3c2b1a-0f9e-4d8c-7b6a-5f4e3d2c1b0a\",\n      \"userId\": \"3f1b6c9a-2a4e-4e1a-9c2b-8a1e6f7d0c11\",\n      \"equipmentId\": \"9e8d7c6b-5a4f-4e3d-8c2b-1a0f9e8d7c6b\",\n      \"startTime\": \"2027-06-01T10:00:00.000Z\",\n      \"endTime\": \"2027-06-01T12:00:00.000Z\",\n      \"status\": \"CONFIRMED\",\n      \"createdAt\": \"2026-09-01T00:00:00.000Z\",\n      \"updatedAt\": \"2026-09-01T00:00:00.000Z\"\n    },\n    {\n      \"id\": \"5e4d3c2b-1a0f-4e3d-8c2b-1a0f9e8d7c6c\",\n      \"userId\": \"7c2d8e4f-1b3a-4c5d-8e6f-9a0b1c2d3e44\",\n      \"equipmentId\": \"9e8d7c6b-5a4f-4e3d-8c2b-1a0f9e8d7c6b\",\n      \"startTime\": \"2027-06-02T10:00:00.000Z\",\n      \"endTime\": \"2027-06-02T12:00:00.000Z\",\n      \"status\": \"CONFIRMED\",\n      \"createdAt\": \"2026-09-01T00:00:00.000Z\",\n      \"updatedAt\": \"2026-09-01T00:00:00.000Z\"\n    }\n  ],\n  \"meta\": { \"page\": 1, \"limit\": 20, \"total\": 2, \"totalPages\": 1 }\n}"
             }
           ],
           "event": [
@@ -4714,9 +5742,390 @@
                   "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
                   "pm.test('Includes reservations from more than one user', function () {",
                   "  const body = pm.response.json();",
-                  "  const userIds = new Set(body.map(function (r) { return r.userId; }));",
+                  "  const userIds = new Set(body.data.map(function (r) { return r.userId; }));",
                   "  pm.expect(userIds.size).to.be.at.least(2);",
                   "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "req-099b",
+          "name": "List Reservations - Filter by Status [Employee A]",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/reservations?status=PENDING",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reservations"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "PENDING",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": "Filters the caller's own reservations down to a single status. An Employee's filter still only ever searches within their own reservations -- ownership scoping is applied first, this narrows it further."
+          },
+          "response": [
+            {
+              "id": "req-099b-example",
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/reservations?status=PENDING",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "reservations"
+                  ],
+                  "query": [
+                    {
+                      "key": "status",
+                      "value": "PENDING",
+                      "disabled": false
+                    }
+                  ]
+                },
+                "description": "Filters the caller's own reservations down to a single status. An Employee's filter still only ever searches within their own reservations -- ownership scoping is applied first, this narrows it further."
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"data\": [\n    { \"id\": \"...\", \"status\": \"PENDING\", \"userId\": \"...\", \"equipmentId\": \"...\", \"startTime\": \"...\", \"endTime\": \"...\", \"createdAt\": \"...\", \"updatedAt\": \"...\" }\n  ],\n  \"meta\": { \"page\": 1, \"limit\": 20, \"total\": 1, \"totalPages\": 1 }\n}"
+            }
+          ],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Select employeeAToken's session in the shared cookie jar before sending.",
+                  "// Postman's cookie jar can only hold one 'auth_token' value per domain at",
+                  "// a time (the app's real HttpOnly cookie name) -- this project tests",
+                  "// multiple concurrent user sessions, so each request that must act as a",
+                  "// specific user re-selects that user's captured token into the jar right",
+                  "// before sending. See postman/README.md, 'How authentication works'.",
+                  "pm.cookies.jar().set(pm.variables.get('baseUrl'), 'auth_token', pm.variables.get('employeeAToken'), function (err) {",
+                  "  if (err) { console.error('Failed to select employeeAToken', err); }",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Every result has status PENDING', function () {",
+                  "  const body = pm.response.json();",
+                  "  body.data.forEach(function (r) { pm.expect(r.status).to.eql('PENDING'); });",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "req-099c",
+          "name": "List Reservations - Filter by Equipment [Admin]",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/reservations?equipmentId={{equipmentNoApprovalId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reservations"
+              ],
+              "query": [
+                {
+                  "key": "equipmentId",
+                  "value": "{{equipmentNoApprovalId}}",
+                  "disabled": false
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "id": "req-099c-example",
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/reservations?equipmentId={{equipmentNoApprovalId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "reservations"
+                  ],
+                  "query": [
+                    {
+                      "key": "equipmentId",
+                      "value": "{{equipmentNoApprovalId}}",
+                      "disabled": false
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"data\": [\n    { \"id\": \"...\", \"status\": \"CONFIRMED\", \"userId\": \"...\", \"equipmentId\": \"...\", \"startTime\": \"...\", \"endTime\": \"...\", \"createdAt\": \"...\", \"updatedAt\": \"...\" }\n  ],\n  \"meta\": { \"page\": 1, \"limit\": 20, \"total\": 1, \"totalPages\": 1 }\n}"
+            }
+          ],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Select adminToken's session in the shared cookie jar before sending.",
+                  "// Postman's cookie jar can only hold one 'auth_token' value per domain at",
+                  "// a time (the app's real HttpOnly cookie name) -- this project tests",
+                  "// multiple concurrent user sessions, so each request that must act as a",
+                  "// specific user re-selects that user's captured token into the jar right",
+                  "// before sending. See postman/README.md, 'How authentication works'.",
+                  "pm.cookies.jar().set(pm.variables.get('baseUrl'), 'auth_token', pm.variables.get('adminToken'), function (err) {",
+                  "  if (err) { console.error('Failed to select adminToken', err); }",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Every result is for the requested equipment', function () {",
+                  "  const body = pm.response.json();",
+                  "  body.data.forEach(function (r) { pm.expect(r.equipmentId).to.eql(pm.variables.get('equipmentNoApprovalId')); });",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "req-099d",
+          "name": "List Reservations - Pagination [Admin]",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/reservations?page=1&limit=1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reservations"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "disabled": false
+                },
+                {
+                  "key": "limit",
+                  "value": "1",
+                  "disabled": false
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "id": "req-099d-example",
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/reservations?page=1&limit=1",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "reservations"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1",
+                      "disabled": false
+                    },
+                    {
+                      "key": "limit",
+                      "value": "1",
+                      "disabled": false
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"data\": [ { \"id\": \"...\", \"status\": \"CONFIRMED\", \"userId\": \"...\", \"equipmentId\": \"...\", \"startTime\": \"...\", \"endTime\": \"...\", \"createdAt\": \"...\", \"updatedAt\": \"...\" } ],\n  \"meta\": { \"page\": 1, \"limit\": 1, \"total\": 2, \"totalPages\": 2 }\n}"
+            }
+          ],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Select adminToken's session in the shared cookie jar before sending.",
+                  "// Postman's cookie jar can only hold one 'auth_token' value per domain at",
+                  "// a time (the app's real HttpOnly cookie name) -- this project tests",
+                  "// multiple concurrent user sessions, so each request that must act as a",
+                  "// specific user re-selects that user's captured token into the jar right",
+                  "// before sending. See postman/README.md, 'How authentication works'.",
+                  "pm.cookies.jar().set(pm.variables.get('baseUrl'), 'auth_token', pm.variables.get('adminToken'), function (err) {",
+                  "  if (err) { console.error('Failed to select adminToken', err); }",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Returns exactly one item per the requested limit', function () {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.data.length).to.eql(1);",
+                  "  pm.expect(body.meta).to.deep.include({ page: 1, limit: 1 });",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "req-099e",
+          "name": "List Reservations - Invalid Status Filter (Error Example)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/reservations?status=NOT_A_STATUS",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reservations"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "NOT_A_STATUS",
+                  "disabled": false
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "id": "req-099e-example",
+              "name": "400 Bad Request",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/reservations?status=NOT_A_STATUS",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "reservations"
+                  ],
+                  "query": [
+                    {
+                      "key": "status",
+                      "value": "NOT_A_STATUS",
+                      "disabled": false
+                    }
+                  ]
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"message\": [\"status must be one of the following values: PENDING, CONFIRMED, REJECTED, CANCELLED\"],\n  \"error\": \"Bad Request\",\n  \"statusCode\": 400\n}"
+            }
+          ],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Select employeeAToken's session in the shared cookie jar before sending.",
+                  "// Postman's cookie jar can only hold one 'auth_token' value per domain at",
+                  "// a time (the app's real HttpOnly cookie name) -- this project tests",
+                  "// multiple concurrent user sessions, so each request that must act as a",
+                  "// specific user re-selects that user's captured token into the jar right",
+                  "// before sending. See postman/README.md, 'How authentication works'.",
+                  "pm.cookies.jar().set(pm.variables.get('baseUrl'), 'auth_token', pm.variables.get('employeeAToken'), function (err) {",
+                  "  if (err) { console.error('Failed to select employeeAToken', err); }",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 400', function () { pm.response.to.have.status(400); });"
                 ]
               }
             }
@@ -5949,6 +7358,380 @@
           ]
         },
         {
+          "id": "req-appr-sa-001",
+          "name": "Create Reservation - For SuperAdmin Approval Demo [Employee A]",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reservations",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reservations"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"equipmentId\": \"{{equipmentApprovalId}}\",\n  \"startTime\": \"2027-04-01T10:00:00.000Z\",\n  \"endTime\": \"2027-04-01T12:00:00.000Z\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "id": "req-appr-sa-001-example",
+              "name": "201 Created",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/reservations",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "reservations"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"equipmentId\": \"{{equipmentApprovalId}}\",\n  \"startTime\": \"2027-04-01T10:00:00.000Z\",\n  \"endTime\": \"2027-04-01T12:00:00.000Z\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"id\": \"...\",\n  \"status\": \"PENDING\",\n  \"...\": \"...\"\n}"
+            }
+          ],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Select employeeAToken's session in the shared cookie jar before sending.",
+                  "// Postman's cookie jar can only hold one 'auth_token' value per domain at",
+                  "// a time (the app's real HttpOnly cookie name) -- this project tests",
+                  "// multiple concurrent user sessions, so each request that must act as a",
+                  "// specific user re-selects that user's captured token into the jar right",
+                  "// before sending. See postman/README.md, 'How authentication works'.",
+                  "pm.cookies.jar().set(pm.variables.get('baseUrl'), 'auth_token', pm.variables.get('employeeAToken'), function (err) {",
+                  "  if (err) { console.error('Failed to select employeeAToken', err); }",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 201', function () { pm.response.to.have.status(201); });",
+                  "if (pm.response.code === 201) { pm.environment.set('reservationForSuperAdminApprovalId', pm.response.json().id); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "req-appr-sa-002",
+          "name": "Approve Reservation - SuperAdmin Allowed [SuperAdmin]",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/reservations/{{reservationForSuperAdminApprovalId}}/approve",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reservations",
+                "{{reservationForSuperAdminApprovalId}}",
+                "approve"
+              ]
+            },
+            "description": "Proves the ADMIN|SUPERADMIN role hierarchy grant on this route works for a real SUPERADMIN session, not just an ADMIN one."
+          },
+          "response": [
+            {
+              "id": "req-appr-sa-002-example",
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "PATCH",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/reservations/{{reservationForSuperAdminApprovalId}}/approve",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "reservations",
+                    "{{reservationForSuperAdminApprovalId}}",
+                    "approve"
+                  ]
+                },
+                "description": "Proves the ADMIN|SUPERADMIN role hierarchy grant on this route works for a real SUPERADMIN session, not just an ADMIN one."
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"id\": \"{{reservationForSuperAdminApprovalId}}\",\n  \"status\": \"CONFIRMED\",\n  \"...\": \"...\"\n}"
+            }
+          ],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Select superAdminToken's session in the shared cookie jar before sending.",
+                  "// Postman's cookie jar can only hold one 'auth_token' value per domain at",
+                  "// a time (the app's real HttpOnly cookie name) -- this project tests",
+                  "// multiple concurrent user sessions, so each request that must act as a",
+                  "// specific user re-selects that user's captured token into the jar right",
+                  "// before sending. See postman/README.md, 'How authentication works'.",
+                  "pm.cookies.jar().set(pm.variables.get('baseUrl'), 'auth_token', pm.variables.get('superAdminToken'), function (err) {",
+                  "  if (err) { console.error('Failed to select superAdminToken', err); }",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Status is now CONFIRMED', function () { pm.expect(pm.response.json().status).to.eql('CONFIRMED'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "req-appr-sa-003",
+          "name": "Create Reservation - For SuperAdmin Rejection Demo [Employee A]",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reservations",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reservations"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"equipmentId\": \"{{equipmentApprovalId}}\",\n  \"startTime\": \"2027-04-02T10:00:00.000Z\",\n  \"endTime\": \"2027-04-02T12:00:00.000Z\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "id": "req-appr-sa-003-example",
+              "name": "201 Created",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/reservations",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "reservations"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"equipmentId\": \"{{equipmentApprovalId}}\",\n  \"startTime\": \"2027-04-02T10:00:00.000Z\",\n  \"endTime\": \"2027-04-02T12:00:00.000Z\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"id\": \"...\",\n  \"status\": \"PENDING\",\n  \"...\": \"...\"\n}"
+            }
+          ],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Select employeeAToken's session in the shared cookie jar before sending.",
+                  "// Postman's cookie jar can only hold one 'auth_token' value per domain at",
+                  "// a time (the app's real HttpOnly cookie name) -- this project tests",
+                  "// multiple concurrent user sessions, so each request that must act as a",
+                  "// specific user re-selects that user's captured token into the jar right",
+                  "// before sending. See postman/README.md, 'How authentication works'.",
+                  "pm.cookies.jar().set(pm.variables.get('baseUrl'), 'auth_token', pm.variables.get('employeeAToken'), function (err) {",
+                  "  if (err) { console.error('Failed to select employeeAToken', err); }",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 201', function () { pm.response.to.have.status(201); });",
+                  "if (pm.response.code === 201) { pm.environment.set('reservationForSuperAdminRejectionId', pm.response.json().id); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "req-appr-sa-004",
+          "name": "Reject Reservation - SuperAdmin Allowed [SuperAdmin]",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/reservations/{{reservationForSuperAdminRejectionId}}/reject",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reservations",
+                "{{reservationForSuperAdminRejectionId}}",
+                "reject"
+              ]
+            }
+          },
+          "response": [
+            {
+              "id": "req-appr-sa-004-example",
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "PATCH",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/reservations/{{reservationForSuperAdminRejectionId}}/reject",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "reservations",
+                    "{{reservationForSuperAdminRejectionId}}",
+                    "reject"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"id\": \"{{reservationForSuperAdminRejectionId}}\",\n  \"status\": \"REJECTED\",\n  \"...\": \"...\"\n}"
+            }
+          ],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Select superAdminToken's session in the shared cookie jar before sending.",
+                  "// Postman's cookie jar can only hold one 'auth_token' value per domain at",
+                  "// a time (the app's real HttpOnly cookie name) -- this project tests",
+                  "// multiple concurrent user sessions, so each request that must act as a",
+                  "// specific user re-selects that user's captured token into the jar right",
+                  "// before sending. See postman/README.md, 'How authentication works'.",
+                  "pm.cookies.jar().set(pm.variables.get('baseUrl'), 'auth_token', pm.variables.get('superAdminToken'), function (err) {",
+                  "  if (err) { console.error('Failed to select superAdminToken', err); }",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Status is now REJECTED', function () { pm.expect(pm.response.json().status).to.eql('REJECTED'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
           "id": "req-132",
           "name": "Approve Reservation - Not Found (Error Example) [Admin]",
           "request": {
@@ -6409,106 +8192,6 @@
     {
       "name": "6. SuperAdmin & User Management",
       "item": [
-        {
-          "id": "req-141",
-          "name": "Login SuperAdmin",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/auth/login",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "auth",
-                "login"
-              ]
-            },
-            "description": "REQUIRES a SuperAdmin account pre-seeded via `npm run seed:superadmin` (backend/src/scripts/seed-superadmin.ts) matching {{superAdminEmail}}/{{superAdminPassword}} -- public registration cannot create a SuperAdmin, and there is no user-management API path to create one either. If this request fails with 401, every SuperAdmin-only request later in this folder will also fail, and that is the expected/documented behavior, not a bug in the collection.",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"email\": \"{{superAdminEmail}}\",\n  \"password\": \"{{superAdminPassword}}\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "response": [
-            {
-              "id": "req-141-example",
-              "name": "200 OK",
-              "originalRequest": {
-                "method": "POST",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json",
-                    "type": "text"
-                  }
-                ],
-                "url": {
-                  "raw": "{{baseUrl}}/auth/login",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "auth",
-                    "login"
-                  ]
-                },
-                "description": "REQUIRES a SuperAdmin account pre-seeded via `npm run seed:superadmin` (backend/src/scripts/seed-superadmin.ts) matching {{superAdminEmail}}/{{superAdminPassword}} -- public registration cannot create a SuperAdmin, and there is no user-management API path to create one either. If this request fails with 401, every SuperAdmin-only request later in this folder will also fail, and that is the expected/documented behavior, not a bug in the collection.",
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"email\": \"{{superAdminEmail}}\",\n  \"password\": \"{{superAdminPassword}}\"\n}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
-                    }
-                  }
-                }
-              },
-              "status": "OK",
-              "code": 200,
-              "_postman_previewlanguage": "json",
-              "header": [
-                {
-                  "key": "Content-Type",
-                  "value": "application/json"
-                }
-              ],
-              "cookie": [],
-              "body": "{\n  \"id\": \"b2c3d4e5-f6a7-4b5c-8d9e-0f1a2b3c4d5e\",\n  \"name\": \"Super Admin\",\n  \"email\": \"superadmin@iventure.local\",\n  \"role\": \"SUPERADMIN\",\n  \"createdAt\": \"2026-09-01T00:00:00.000Z\"\n}"
-            }
-          ],
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('Status code is 200 (see request description if this fails)', function () { pm.response.to.have.status(200); });",
-                  "pm.test('Role is SUPERADMIN', function () {",
-                  "  pm.expect(pm.response.json().role).to.eql('SUPERADMIN');",
-                  "});",
-                  "if (pm.response.code === 200) {",
-                  "  const body = pm.response.json();",
-                  "  pm.environment.set('superAdminId', body.id);",
-                  "  pm.environment.set('superAdminToken', pm.cookies.get('auth_token'));",
-                  "}"
-                ]
-              }
-            }
-          ]
-        },
         {
           "id": "req-142",
           "name": "List Users - Employee Forbidden (Error Example)",

@@ -3,7 +3,6 @@
 import { usePathname } from "next/navigation";
 import { IconMenu, IconChevronRight } from "@/components/ui/Icons";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
-import styles from "./Header.module.css";
 
 interface HeaderProps {
   onOpenMobileMenu?: () => void;
@@ -22,25 +21,25 @@ export function Header({ onOpenMobileMenu }: HeaderProps) {
   };
 
   return (
-    <header className={styles.header}>
-      <div className={styles.leftArea}>
+    <header className="h-16 bg-surface border-b border-border flex items-center justify-between px-4 sm:px-6 sticky top-0 z-30">
+      <div className="flex items-center gap-4">
         <button
           type="button"
-          className={styles.menuButton}
+          className="hidden max-lg:inline-flex items-center justify-center w-9 h-9 rounded-[var(--radius-md)] border border-border bg-surface text-foreground-secondary cursor-pointer transition-all duration-150 hover:bg-surface-muted hover:text-foreground"
           onClick={onOpenMobileMenu}
           aria-label="Open navigation menu"
         >
           <IconMenu size={20} />
         </button>
 
-        <div className={styles.breadcrumb}>
+        <div className="flex items-center gap-2 text-sm font-medium text-foreground-muted">
           <span>iVenture</span>
           <IconChevronRight size={14} style={{ opacity: 0.6 }} />
-          <span className={styles.currentRoute}>{getRouteLabel()}</span>
+          <span className="text-foreground font-semibold">{getRouteLabel()}</span>
         </div>
       </div>
 
-      <div className={styles.rightArea}>
+      <div className="flex items-center gap-3">
         <ThemeToggle />
       </div>
     </header>

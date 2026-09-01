@@ -9,7 +9,6 @@ import { Alert } from "@/components/ui/Alert";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { IconUser } from "@/components/ui/Icons";
-import styles from "./AuthForm.module.css";
 
 export function LoginForm({ initialSuccess }: { initialSuccess?: string | null }) {
   const router = useRouter();
@@ -35,15 +34,15 @@ export function LoginForm({ initialSuccess }: { initialSuccess?: string | null }
 
   return (
     <div>
-      <div className={styles.formHeader}>
-        <div className={styles.iconBadge}>
+      <div className="flex flex-col items-center text-center mb-6 gap-1">
+        <div className="w-11 h-11 rounded-[var(--radius-md)] bg-surface-subtle border border-border-accent text-primary flex items-center justify-center mb-3">
           <IconUser size={22} />
         </div>
-        <h1 className={styles.title}>Sign in to your account</h1>
-        <p className={styles.subtitle}>Enter your company credentials to manage equipment</p>
+        <h1 className="text-[1.375rem] font-bold text-foreground tracking-[-0.02em]">Sign in to your account</h1>
+        <p className="text-sm text-foreground-muted leading-[1.4]">Enter your company credentials to manage equipment</p>
       </div>
 
-      <form className={styles.form} onSubmit={handleSubmit} noValidate>
+      <form className="flex flex-col gap-4" onSubmit={handleSubmit} noValidate>
         {initialSuccess && <Alert variant="success">{initialSuccess}</Alert>}
         {error && <Alert variant="error">{error}</Alert>}
 
@@ -73,8 +72,11 @@ export function LoginForm({ initialSuccess }: { initialSuccess?: string | null }
           Sign in
         </Button>
 
-        <p className={styles.footer}>
-          Don&apos;t have an account? <Link href="/register">Create an account</Link>
+        <p className="mt-4 pt-4 border-t border-border text-sm text-foreground-muted text-center">
+          Don&apos;t have an account?{" "}
+          <Link href="/register" className="text-primary font-semibold ml-1 hover:text-primary-hover hover:underline transition-colors duration-150">
+            Create an account
+          </Link>
         </p>
       </form>
     </div>
