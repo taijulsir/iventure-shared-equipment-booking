@@ -1,6 +1,7 @@
 import {
   ConflictException,
   Injectable,
+  Logger,
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
@@ -19,6 +20,8 @@ const DUMMY_PASSWORD_HASH =
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly hashingService: HashingService,
@@ -61,6 +64,7 @@ export class AuthService {
 
     const existing = await this.prisma.user.findUnique({ where: { email } });
     if (existing) {
+      this.logger.warn(`Registration rejected: email ${email} is already registered`);
       throw new ConflictException('Email is already registered');
     }
 
@@ -75,6 +79,7 @@ export class AuthService {
       },
     });
 
+    this.logger.log(`Employee registered successfully: ${user.email} (${user.id})`);
     return this.toSafeUser(user);
   }
 
@@ -93,6 +98,7 @@ export class AuthService {
     );
 
     if (!user || !passwordMatches) {
+      this.logger.warn(`Failed login attempt for email: ${email}`);
       throw new UnauthorizedException('Invalid email or password');
     }
 
@@ -101,6 +107,7 @@ export class AuthService {
     const payload: JwtPayload = { sub: user.id, role: user.role };
     const token = await this.jwtService.signAsync(payload);
 
+    this.logger.log(`User logged in: ${user.email} (${user.id}, role: ${user.role})`);
     return { user: this.toSafeUser(user), token };
   }
 

@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -53,6 +54,8 @@ const LIST_ALL_ROLES: Role[] = [Role.ADMIN, Role.SUPERADMIN];
 
 @Injectable()
 export class ReservationService {
+  private readonly logger = new Logger(ReservationService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly ownershipService: OwnershipService,
@@ -88,7 +91,7 @@ export class ReservationService {
       : ReservationStatus.CONFIRMED;
 
     try {
-      return await this.prisma.reservation.create({
+      const reservation = await this.prisma.reservation.create({
         data: {
           userId: user.sub,
           equipmentId: dto.equipmentId,
@@ -97,6 +100,11 @@ export class ReservationService {
           status,
         },
       });
+
+      this.logger.log(
+        `Reservation created: ${reservation.id} (equipment: ${reservation.equipmentId}, user: ${user.sub}, status: ${status})`,
+      );
+      return reservation;
     } catch (error) {
       // Layer 2: the database's EXCLUDE constraint is the authoritative
       // guarantee — this only fires in the rare race where two requests
@@ -104,6 +112,9 @@ export class ReservationService {
       // same 409 response as the layer-1 conflict, per docs/architecture.md
       // ("Error Handling").
       if (this.isExclusionViolation(error)) {
+        this.logger.warn(
+          `Database exclusion constraint prevented concurrent conflict for equipment ${dto.equipmentId}`,
+        );
         throw new ConflictException(
           'This equipment is already reserved for an overlapping time range',
         );
@@ -122,6 +133,9 @@ export class ReservationService {
     });
 
     if (conflict) {
+      this.logger.warn(
+        `Reservation conflict detected for equipment ${equipmentId} (conflicts with existing ${conflict.id})`,
+      );
       throw new ConflictException(
         'This equipment is already reserved for an overlapping time range',
       );
@@ -233,10 +247,12 @@ export class ReservationService {
     }
 
     try {
-      return await this.prisma.reservation.update({
+      const updated = await this.prisma.reservation.update({
         where: { id },
         data: { status: ReservationStatus.CANCELLED },
       });
+      this.logger.log(`Reservation ${id} cancelled by user ${user.sub}`);
+      return updated;
     } catch (error) {
       if (
         error instanceof Prisma.PrismaClientKnownRequestError &&
@@ -271,26 +287,19 @@ export class ReservationService {
     }
 
     try {
-      return await this.prisma.reservation.update({
+      const updated = await this.prisma.reservation.update({
         where: { id },
         data: { status: ReservationStatus.CONFIRMED },
       });
+      this.logger.log(`Reservation ${id} approved (status set to CONFIRMED)`);
+      return updated;
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
         if (error.code === PRISMA_ERROR_RECORD_NOT_FOUND) {
           throw new NotFoundException('Reservation not found');
         }
-        // Defense in depth (docs/decisions.md, "Approval must not bypass
-        // database-level overlap protection"): PENDING reservations already
-        // participate in the EXCLUDE constraint's WHERE clause alongside
-        // CONFIRMED ones, so a PENDING row already holds its slot exclusively
-        // from creation — moving it to CONFIRMED does not change its
-        // membership in that constraint and cannot newly conflict with
-        // another active reservation under the current schema. This catch
-        // exists so that guarantee is enforced by the database, not merely
-        // assumed by this reasoning, and so the API never surfaces a raw
-        // constraint error if that assumption is ever invalidated.
         if (this.isExclusionViolation(error)) {
+          this.logger.warn(`Approval of reservation ${id} conflicted with active reservation`);
           throw new ConflictException(
             'This reservation conflicts with another active reservation for the same equipment',
           );
@@ -323,10 +332,12 @@ export class ReservationService {
     }
 
     try {
-      return await this.prisma.reservation.update({
+      const updated = await this.prisma.reservation.update({
         where: { id },
         data: { status: ReservationStatus.REJECTED },
       });
+      this.logger.log(`Reservation ${id} rejected (status set to REJECTED)`);
+      return updated;
     } catch (error) {
       if (
         error instanceof Prisma.PrismaClientKnownRequestError &&
