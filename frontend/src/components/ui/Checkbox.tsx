@@ -1,5 +1,4 @@
 import { useId, type InputHTMLAttributes } from "react";
-import styles from "./Checkbox.module.css";
 
 export interface CheckboxProps extends InputHTMLAttributes<HTMLInputElement> {
   label: string;
@@ -11,19 +10,19 @@ export function Checkbox({ label, helperText, id, className, ...rest }: Checkbox
   const checkboxId = id ?? generatedId;
 
   return (
-    <div className={styles.field}>
-      <div className={styles.row}>
+    <div className="flex flex-col gap-1">
+      <div className="flex items-center gap-2">
         <input
           id={checkboxId}
           type="checkbox"
-          className={[styles.checkbox, className].filter(Boolean).join(" ")}
+          className={["w-4 h-4 accent-primary cursor-pointer rounded", className].filter(Boolean).join(" ")}
           {...rest}
         />
-        <label htmlFor={checkboxId} className={styles.label}>
+        <label htmlFor={checkboxId} className="text-sm font-medium text-foreground cursor-pointer">
           {label}
         </label>
       </div>
-      {helperText && <span className={styles.helperText}>{helperText}</span>}
+      {helperText && <span className="text-[0.8125rem] text-foreground-muted ml-6">{helperText}</span>}
     </div>
   );
 }

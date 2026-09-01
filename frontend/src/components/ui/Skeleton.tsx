@@ -1,5 +1,4 @@
 import type { HTMLAttributes } from "react";
-import styles from "./Skeleton.module.css";
 
 export interface SkeletonProps extends HTMLAttributes<HTMLDivElement> {
   width?: string | number;
@@ -17,7 +16,7 @@ export function Skeleton({
 }: SkeletonProps) {
   return (
     <div
-      className={[styles.skeleton, className].filter(Boolean).join(" ")}
+      className={["animate-pulse bg-surface-muted rounded-[var(--radius-sm)]", className].filter(Boolean).join(" ")}
       style={{
         width,
         height,

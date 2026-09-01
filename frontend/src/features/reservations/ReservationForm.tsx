@@ -10,7 +10,6 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { datetimeLocalValueToUtcIso } from "@/lib/format";
-import styles from "./ReservationForm.module.css";
 
 export function ReservationForm({
   equipment,
@@ -69,7 +68,7 @@ export function ReservationForm({
   }
 
   return (
-    <form className={styles.form} onSubmit={handleSubmit} noValidate>
+    <form className="flex flex-col gap-4" onSubmit={handleSubmit} noValidate>
       {error && <Alert variant="error">{error}</Alert>}
 
       <Select
@@ -81,7 +80,7 @@ export function ReservationForm({
       />
 
       {selectedEquipment && (
-        <p className={styles.policyNote}>
+        <p className="text-[0.8125rem] text-foreground-muted -mt-1.5">
           {selectedEquipment.requiresApproval
             ? "This item requires administrator approval — your reservation will start as Pending."
             : "This item is instant-booking — your reservation will be Confirmed immediately."}

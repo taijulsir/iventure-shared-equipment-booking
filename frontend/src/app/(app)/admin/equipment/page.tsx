@@ -9,7 +9,6 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { Pagination } from "@/components/ui/Pagination";
 import { EquipmentSearchBar } from "@/features/equipment/EquipmentSearchBar";
 import { EquipmentManagementTable } from "@/features/equipment/EquipmentManagementTable";
-import styles from "./page.module.css";
 
 const PAGE_LIMIT = 20;
 
@@ -43,7 +42,7 @@ export default async function AdminEquipmentPage({
   }
 
   return (
-    <div className={styles.page}>
+    <div className="flex flex-col gap-6">
       <PageHeader
         title="Equipment Management"
         subtitle="Add, edit, and decommission shared equipment catalogue items."

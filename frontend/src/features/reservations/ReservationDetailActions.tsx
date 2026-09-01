@@ -8,7 +8,6 @@ import { resolveApiErrorMessage } from "@/lib/api/handleApiError";
 import { isUpcomingReservation } from "@/lib/format";
 import { Alert } from "@/components/ui/Alert";
 import { Button } from "@/components/ui/Button";
-import styles from "./ReservationDetailActions.module.css";
 
 type Action = "cancel" | "approve" | "reject";
 
@@ -24,10 +23,6 @@ const CONFIRM_LABEL: Record<Action, string> = {
   reject: "Reject this reservation?",
 };
 
-/** Single-reservation equivalent of ReservationTable's row actions — kept
- * as its own component since the detail page has no "row" to attach state
- * to. Re-checks the same visibility rules (backend still enforces them
- * independently on every request). */
 export function ReservationDetailActions({
   reservation,
   isOwner,
@@ -65,12 +60,12 @@ export function ReservationDetailActions({
   }
 
   return (
-    <div className={styles.actions}>
+    <div className="flex flex-col gap-3 pt-3 border-t border-border">
       {error && <Alert variant="error">{error}</Alert>}
 
       {pendingAction ? (
-        <div className={styles.confirmGroup}>
-          <span className={styles.confirmLabel}>{CONFIRM_LABEL[pendingAction]}</span>
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-sm font-medium text-foreground-secondary">{CONFIRM_LABEL[pendingAction]}</span>
           <Button
             size="sm"
             variant={pendingAction === "reject" ? "danger" : "primary"}
@@ -84,7 +79,7 @@ export function ReservationDetailActions({
           </Button>
         </div>
       ) : (
-        <div className={styles.buttonGroup}>
+        <div className="flex gap-2 flex-wrap">
           {canCancel && (
             <Button size="sm" variant="outline" onClick={() => setPendingAction("cancel")}>
               Cancel reservation

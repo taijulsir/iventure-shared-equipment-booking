@@ -5,14 +5,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { IconSearch } from "@/components/ui/Icons";
-import styles from "./EquipmentSearchBar.module.css";
 
-/**
- * Drives GET /equipment's real `search` query param via the URL (not
- * client-side filtering of an already-fetched page) — submitting re-renders
- * the server component with the new searchParams, which re-fetches from the
- * backend. A new search always resets back to page 1.
- */
 export function EquipmentSearchBar({ initialSearch }: { initialSearch: string }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -33,8 +26,8 @@ export function EquipmentSearchBar({ initialSearch }: { initialSearch: string })
   }
 
   return (
-    <form className={styles.form} onSubmit={handleSubmit} role="search">
-      <div className={styles.inputWrapper}>
+    <form className="flex items-end gap-3 flex-wrap" onSubmit={handleSubmit} role="search">
+      <div className="flex-1 min-w-[220px]">
         <Input
           label="Search equipment"
           placeholder="Search by name or description…"

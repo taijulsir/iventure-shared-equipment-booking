@@ -1,8 +1,4 @@
 import { useId, type SelectHTMLAttributes } from "react";
-// Deliberately reuses Input's own CSS module rather than introducing a new
-// visual style for form controls — a <select> styled any differently from
-// <input> would look like a second, competing design system.
-import inputStyles from "./Input.module.css";
 
 export interface SelectOption {
   label: string;
@@ -19,19 +15,24 @@ export function Select({ label, options, id, className, ...rest }: SelectProps) 
   const selectId = id ?? generatedId;
 
   return (
-    <div className={inputStyles.field}>
+    <div className="flex flex-col gap-1.5 w-full">
       {label && (
-        <div className={inputStyles.labelRow}>
-          <label className={inputStyles.label} htmlFor={selectId}>
+        <div className="flex items-center justify-between">
+          <label className="text-sm font-medium text-foreground tracking-[-0.01em]" htmlFor={selectId}>
             {label}
           </label>
         </div>
       )}
 
-      <div className={inputStyles.inputWrapper}>
+      <div className="relative flex items-center w-full">
         <select
           id={selectId}
-          className={[inputStyles.input, className].filter(Boolean).join(" ")}
+          className={[
+            "w-full border border-border rounded-[var(--radius-md)] px-3.5 py-2.5 text-[0.9375rem] leading-[1.35rem] bg-surface text-foreground shadow-xs transition-all duration-150 hover:not-disabled:border-border-hover focus:outline-none focus:border-primary focus:ring-3 focus:ring-primary-focus disabled:bg-surface-muted disabled:cursor-not-allowed disabled:opacity-70",
+            className,
+          ]
+            .filter(Boolean)
+            .join(" ")}
           {...rest}
         >
           {options.map((option) => (

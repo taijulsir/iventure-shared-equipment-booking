@@ -12,7 +12,6 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { Pagination } from "@/components/ui/Pagination";
 import { ReservationTable } from "@/features/reservations/ReservationTable";
 import { ReservationFilters } from "@/features/reservations/ReservationFilters";
-import styles from "./page.module.css";
 
 const PAGE_LIMIT = 20;
 const VALID_STATUSES: ReservationStatus[] = ["PENDING", "CONFIRMED", "REJECTED", "CANCELLED"];
@@ -63,7 +62,7 @@ export default async function ReservationsPage({
   }
 
   return (
-    <div className={styles.page}>
+    <div className="flex flex-col gap-6">
       <PageHeader
         title={isAdmin ? "All Company Reservations" : "My Reservations"}
         subtitle={
@@ -95,7 +94,7 @@ export default async function ReservationsPage({
         </Alert>
       ) : (
         <>
-          <div className={styles.tableCard}>
+          <div className="bg-surface border border-border rounded-[var(--radius-lg)] overflow-hidden shadow-xs">
             <ReservationTable
               reservations={reservations ?? []}
               currentUserId={user.id}

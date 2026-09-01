@@ -13,7 +13,6 @@ import { IconArrowRight, IconClock, IconUser } from "@/components/ui/Icons";
 import { formatUtc } from "@/lib/format";
 import { statusTone } from "@/features/reservations/statusTone";
 import { ReservationDetailActions } from "@/features/reservations/ReservationDetailActions";
-import styles from "./page.module.css";
 
 export default async function ReservationDetailPage({
   params,
@@ -29,11 +28,6 @@ export default async function ReservationDetailPage({
   const cookieHeader = await getRequestCookieHeader();
   const isAdmin = user.role === "ADMIN" || user.role === "SUPERADMIN";
 
-  // Data-fetching happens entirely in this try/catch, only ever assigning
-  // plain variables — no JSX is constructed inside it (react-hooks/error-
-  // boundaries: JSX built inside a try/catch isn't actually protected by
-  // it, since React renders asynchronously). The JSX below is built
-  // unconditionally from the results afterward.
   let reservation: Reservation | null = null;
   let equipmentName: string | null = null;
   let errorMessage: string | null = null;
@@ -45,8 +39,6 @@ export default async function ReservationDetailPage({
       const equipment = await getEquipment(reservation.equipmentId, cookieHeader);
       equipmentName = equipment.name;
     } catch {
-      // Non-fatal: the reservation itself loaded fine, so still show the
-      // page — just fall back to the raw id rather than blanking the page.
       equipmentName = reservation.equipmentId;
     }
   } catch (error) {
@@ -63,13 +55,16 @@ export default async function ReservationDetailPage({
 
   if (errorMessage || !reservation) {
     return (
-      <div className={styles.page}>
+      <div className="flex flex-col gap-6 max-w-[560px]">
         <PageHeader title="Reservation" subtitle="Reservation details" />
         <Alert variant="error" title="Failed to load reservation">
           {errorMessage}
         </Alert>
-        <Link href="/reservations" className={styles.backLink}>
-          <IconArrowRight size={14} style={{ transform: "rotate(180deg)" }} />
+        <Link
+          href="/reservations"
+          className="inline-flex items-center gap-2 text-sm font-medium text-foreground-secondary hover:text-primary transition-colors duration-150 w-fit"
+        >
+          <IconArrowRight size={14} className="rotate-180" />
           <span>Back to reservations</span>
         </Link>
       </div>
@@ -79,53 +74,56 @@ export default async function ReservationDetailPage({
   const isOwner = reservation.userId === user.id;
 
   return (
-    <div className={styles.page}>
+    <div className="flex flex-col gap-6 max-w-[560px]">
       <PageHeader
         title={equipmentName ?? reservation.equipmentId}
         subtitle="Reservation details"
         badge={<Badge tone={statusTone(reservation.status)}>{reservation.status}</Badge>}
       />
 
-      <Card className={styles.detailCard}>
-        <div className={styles.detailRow}>
-          <IconClock size={16} className={styles.detailIcon} />
+      <Card className="flex flex-col gap-4 p-6">
+        <div className="flex items-start gap-3">
+          <IconClock size={16} className="text-primary mt-0.5 shrink-0" />
           <div>
-            <span className={styles.detailLabel}>Start time</span>
-            <span className={styles.detailValue}>{formatUtc(reservation.startTime)}</span>
+            <span className="block text-xs font-semibold uppercase tracking-[0.05em] text-foreground-muted">Start time</span>
+            <span className="block text-[0.9375rem] font-medium text-foreground mt-0.5 tabular-nums">{formatUtc(reservation.startTime)}</span>
           </div>
         </div>
 
-        <div className={styles.detailRow}>
-          <IconClock size={16} className={styles.detailIcon} />
+        <div className="flex items-start gap-3">
+          <IconClock size={16} className="text-primary mt-0.5 shrink-0" />
           <div>
-            <span className={styles.detailLabel}>End time</span>
-            <span className={styles.detailValue}>{formatUtc(reservation.endTime)}</span>
+            <span className="block text-xs font-semibold uppercase tracking-[0.05em] text-foreground-muted">End time</span>
+            <span className="block text-[0.9375rem] font-medium text-foreground mt-0.5 tabular-nums">{formatUtc(reservation.endTime)}</span>
           </div>
         </div>
 
         {isAdmin && (
-          <div className={styles.detailRow}>
-            <IconUser size={16} className={styles.detailIcon} />
+          <div className="flex items-start gap-3">
+            <IconUser size={16} className="text-primary mt-0.5 shrink-0" />
             <div>
-              <span className={styles.detailLabel}>Booked by</span>
-              <span className={styles.detailValue}>{isOwner ? "You" : "Another employee"}</span>
+              <span className="block text-xs font-semibold uppercase tracking-[0.05em] text-foreground-muted">Booked by</span>
+              <span className="block text-[0.9375rem] font-medium text-foreground mt-0.5">{isOwner ? "You" : "Another employee"}</span>
             </div>
           </div>
         )}
 
-        <div className={styles.detailRow}>
-          <IconClock size={16} className={styles.detailIcon} />
+        <div className="flex items-start gap-3">
+          <IconClock size={16} className="text-primary mt-0.5 shrink-0" />
           <div>
-            <span className={styles.detailLabel}>Created</span>
-            <span className={styles.detailValue}>{formatUtc(reservation.createdAt)}</span>
+            <span className="block text-xs font-semibold uppercase tracking-[0.05em] text-foreground-muted">Created</span>
+            <span className="block text-[0.9375rem] font-medium text-foreground mt-0.5 tabular-nums">{formatUtc(reservation.createdAt)}</span>
           </div>
         </div>
 
         <ReservationDetailActions reservation={reservation} isOwner={isOwner} isAdmin={isAdmin} />
       </Card>
 
-      <Link href="/reservations" className={styles.backLink}>
-        <IconArrowRight size={14} style={{ transform: "rotate(180deg)" }} />
+      <Link
+        href="/reservations"
+        className="inline-flex items-center gap-2 text-sm font-medium text-foreground-secondary hover:text-primary transition-colors duration-150 w-fit"
+      >
+        <IconArrowRight size={14} className="rotate-180" />
         <span>Back to reservations</span>
       </Link>
     </div>

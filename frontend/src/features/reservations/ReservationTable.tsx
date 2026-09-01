@@ -12,7 +12,6 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { IconCalendar, IconEquipment, IconClock, IconUser, IconAlertCircle } from "@/components/ui/Icons";
 import { formatUtc, isUpcomingReservation } from "@/lib/format";
 import { statusTone } from "./statusTone";
-import styles from "./ReservationTable.module.css";
 
 type Action = "cancel" | "approve" | "reject";
 
@@ -34,13 +33,6 @@ const ACTION_FN: Record<Action, (id: string) => Promise<Reservation>> = {
   reject: rejectReservation,
 };
 
-/**
- * `currentUserId`/`isAdmin` determine which actions render per row — but the
- * backend independently re-checks ownership/role/status on every mutation
- * regardless of what this component shows (RBAC + ownership are enforced
- * server-side, per docs/decisions.md). Hiding an action here is purely UX:
- * it keeps the table from offering a button the API would reject anyway.
- */
 export function ReservationTable({
   reservations: initialReservations,
   currentUserId,
@@ -97,16 +89,30 @@ export function ReservationTable({
   return (
     <>
       {/* Desktop Table View */}
-      <div className={styles.tableWrapper}>
-        <table className={styles.table}>
+      <div className="hidden sm:block w-full overflow-x-auto">
+        <table className="w-full border-collapse text-sm text-left">
           <thead>
             <tr>
-              <th>Equipment</th>
-              {showOwner && <th>Booked By</th>}
-              <th>Start Time (UTC)</th>
-              <th>End Time (UTC)</th>
-              <th>Status</th>
-              <th>Action</th>
+              <th className="text-xs font-semibold uppercase tracking-[0.05em] text-foreground-muted px-4 py-3 bg-surface-muted border-b border-border rounded-tl-[var(--radius-md)] whitespace-nowrap">
+                Equipment
+              </th>
+              {showOwner && (
+                <th className="text-xs font-semibold uppercase tracking-[0.05em] text-foreground-muted px-4 py-3 bg-surface-muted border-b border-border whitespace-nowrap">
+                  Booked By
+                </th>
+              )}
+              <th className="text-xs font-semibold uppercase tracking-[0.05em] text-foreground-muted px-4 py-3 bg-surface-muted border-b border-border whitespace-nowrap">
+                Start Time (UTC)
+              </th>
+              <th className="text-xs font-semibold uppercase tracking-[0.05em] text-foreground-muted px-4 py-3 bg-surface-muted border-b border-border whitespace-nowrap">
+                End Time (UTC)
+              </th>
+              <th className="text-xs font-semibold uppercase tracking-[0.05em] text-foreground-muted px-4 py-3 bg-surface-muted border-b border-border whitespace-nowrap">
+                Status
+              </th>
+              <th className="text-xs font-semibold uppercase tracking-[0.05em] text-foreground-muted px-4 py-3 bg-surface-muted border-b border-border rounded-tr-[var(--radius-md)] whitespace-nowrap">
+                Action
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -115,46 +121,48 @@ export function ReservationTable({
               const equipName = equipmentNameById[reservation.equipmentId] ?? reservation.equipmentId;
 
               return (
-                <tr key={reservation.id}>
-                  <td>
-                    <Link href={`/reservations/${reservation.id}`} className={styles.equipmentCell}>
-                      <div className={styles.equipmentIconBox}>
+                <tr key={reservation.id} className="group hover:bg-surface-subtle transition-colors duration-150">
+                  <td className="p-4 border-b border-border text-foreground align-middle group-last:border-b-0">
+                    <Link href={`/reservations/${reservation.id}`} className="flex items-center gap-3 w-fit group/link">
+                      <div className="w-8 h-8 rounded-[var(--radius-md)] bg-surface-subtle border border-border-accent text-primary flex items-center justify-center shrink-0">
                         <IconEquipment size={16} />
                       </div>
-                      <span className={styles.equipmentName}>{equipName}</span>
+                      <span className="font-semibold text-foreground group-hover/link:text-primary transition-colors duration-150">
+                        {equipName}
+                      </span>
                     </Link>
                   </td>
 
                   {showOwner && (
-                    <td>
-                      <div className={styles.userCell}>
+                    <td className="p-4 border-b border-border text-foreground-secondary align-middle group-last:border-b-0">
+                      <div className="flex items-center gap-2">
                         <IconUser size={14} style={{ opacity: 0.7 }} />
                         <span>{isCurrentUser ? "You" : "Another employee"}</span>
                       </div>
                     </td>
                   )}
 
-                  <td>
-                    <div className={styles.timeCell}>
-                      <IconClock size={14} className={styles.timeIcon} />
+                  <td className="p-4 border-b border-border text-foreground-secondary align-middle group-last:border-b-0">
+                    <div className="flex items-center gap-1.5 tabular-nums whitespace-nowrap">
+                      <IconClock size={14} className="text-foreground-muted" />
                       <span>{formatUtc(reservation.startTime)}</span>
                     </div>
                   </td>
 
-                  <td>
-                    <div className={styles.timeCell}>
-                      <IconClock size={14} className={styles.timeIcon} />
+                  <td className="p-4 border-b border-border text-foreground-secondary align-middle group-last:border-b-0">
+                    <div className="flex items-center gap-1.5 tabular-nums whitespace-nowrap">
+                      <IconClock size={14} className="text-foreground-muted" />
                       <span>{formatUtc(reservation.endTime)}</span>
                     </div>
                   </td>
 
-                  <td>
+                  <td className="p-4 border-b border-border text-foreground align-middle group-last:border-b-0">
                     <Badge tone={statusTone(reservation.status)}>
                       {reservation.status}
                     </Badge>
                   </td>
 
-                  <td>
+                  <td className="p-4 border-b border-border text-foreground align-middle group-last:border-b-0">
                     <RowActions {...rowProps(reservation)} />
                   </td>
                 </tr>
@@ -165,19 +173,21 @@ export function ReservationTable({
       </div>
 
       {/* Mobile Card List View */}
-      <div className={styles.mobileCardList}>
+      <div className="sm:hidden flex flex-col gap-4">
         {reservations.map((reservation) => {
           const isCurrentUser = reservation.userId === currentUserId;
           const equipName = equipmentNameById[reservation.equipmentId] ?? reservation.equipmentId;
 
           return (
-            <div key={reservation.id} className={styles.mobileCard}>
-              <div className={styles.mobileCardHeader}>
-                <Link href={`/reservations/${reservation.id}`} className={styles.equipmentCell}>
-                  <div className={styles.equipmentIconBox}>
+            <div key={reservation.id} className="bg-surface border border-border rounded-[var(--radius-md)] p-5 flex flex-col gap-3">
+              <div className="flex items-center justify-between gap-2">
+                <Link href={`/reservations/${reservation.id}`} className="flex items-center gap-3 w-fit group/link">
+                  <div className="w-8 h-8 rounded-[var(--radius-md)] bg-surface-subtle border border-border-accent text-primary flex items-center justify-center shrink-0">
                     <IconEquipment size={16} />
                   </div>
-                  <span className={styles.equipmentName}>{equipName}</span>
+                  <span className="font-semibold text-foreground group-hover/link:text-primary transition-colors duration-150">
+                    {equipName}
+                  </span>
                 </Link>
                 <Badge tone={statusTone(reservation.status)}>
                   {reservation.status}
@@ -185,24 +195,24 @@ export function ReservationTable({
               </div>
 
               {showOwner && (
-                <div className={styles.userCell} style={{ fontSize: "0.8125rem" }}>
+                <div className="flex items-center gap-2 text-foreground-secondary text-[0.8125rem]">
                   <IconUser size={14} style={{ opacity: 0.7 }} />
                   <span>Booked by: <strong>{isCurrentUser ? "You" : "Another employee"}</strong></span>
                 </div>
               )}
 
-              <div className={styles.mobileCardTimes}>
-                <div className={styles.timeRow}>
-                  <span className={styles.timeLabel}>Start:</span>
-                  <span className={styles.timeValue}>{formatUtc(reservation.startTime)}</span>
+              <div className="flex flex-col gap-1.5 p-3 bg-surface-muted rounded-[var(--radius-sm)]">
+                <div className="flex items-center justify-between text-[0.8125rem]">
+                  <span className="text-foreground-muted font-medium">Start:</span>
+                  <span className="text-foreground font-medium tabular-nums">{formatUtc(reservation.startTime)}</span>
                 </div>
-                <div className={styles.timeRow}>
-                  <span className={styles.timeLabel}>End:</span>
-                  <span className={styles.timeValue}>{formatUtc(reservation.endTime)}</span>
+                <div className="flex items-center justify-between text-[0.8125rem]">
+                  <span className="text-foreground-muted font-medium">End:</span>
+                  <span className="text-foreground font-medium tabular-nums">{formatUtc(reservation.endTime)}</span>
                 </div>
               </div>
 
-              <div className={styles.mobileCardFooter}>
+              <div className="pt-2 border-t border-border">
                 <RowActions {...rowProps(reservation)} />
               </div>
             </div>
@@ -236,8 +246,8 @@ function RowActions({
 
   if (state.mode === "confirming") {
     return (
-      <div className={styles.confirmGroup}>
-        <span className={styles.confirmLabel}>{CONFIRM_LABEL[state.action]}</span>
+      <div className="flex items-center gap-2 flex-wrap">
+        <span className="text-[0.8125rem] font-medium text-foreground-secondary">{CONFIRM_LABEL[state.action]}</span>
         <Button
           size="sm"
           variant={state.action === "reject" ? "danger" : "primary"}
@@ -255,7 +265,7 @@ function RowActions({
   const isSubmitting = state.mode === "submitting";
 
   return (
-    <div className={styles.actionGroup}>
+    <div className="flex items-center gap-2 flex-wrap">
       {canCancel && (
         <Button size="sm" variant="outline" isLoading={isSubmitting} onClick={() => onRequestAction("cancel")}>
           Cancel
@@ -271,9 +281,9 @@ function RowActions({
           </Button>
         </>
       )}
-      {!canCancel && !canModerate && <span className={styles.noAction}>—</span>}
+      {!canCancel && !canModerate && <span className="text-foreground-muted">—</span>}
       {state.mode === "error" && (
-        <div className={styles.rowError}>
+        <div className="flex items-center gap-1.5 mt-2 text-danger text-[0.8125rem] w-full">
           <IconAlertCircle size={13} />
           <span>{state.message}</span>
         </div>

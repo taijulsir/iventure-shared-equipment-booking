@@ -7,7 +7,6 @@ import { Alert } from "@/components/ui/Alert";
 import { Button } from "@/components/ui/Button";
 import { Checkbox } from "@/components/ui/Checkbox";
 import { Input } from "@/components/ui/Input";
-import styles from "./EquipmentForm.module.css";
 
 export interface EquipmentFormValues {
   name: string;
@@ -15,9 +14,6 @@ export interface EquipmentFormValues {
   requiresApproval: boolean;
 }
 
-/** Shared create/edit form — both EquipmentManagementTable call sites just
- * supply an `onSubmit` that calls the right API function (create vs.
- * update); the form itself doesn't know which. */
 export function EquipmentForm({
   initialValues,
   submitLabel,
@@ -56,7 +52,7 @@ export function EquipmentForm({
   }
 
   return (
-    <form className={styles.form} onSubmit={handleSubmit} noValidate>
+    <form className="flex flex-col gap-4" onSubmit={handleSubmit} noValidate>
       {error && <Alert variant="error">{error}</Alert>}
 
       <Input
@@ -83,7 +79,7 @@ export function EquipmentForm({
         helperText="When on, new reservations start as Pending instead of Confirmed"
       />
 
-      <div className={styles.buttonRow}>
+      <div className="flex items-center gap-2">
         <Button type="submit" variant="primary" isLoading={isSubmitting}>
           {submitLabel}
         </Button>

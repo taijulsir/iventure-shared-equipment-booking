@@ -5,7 +5,6 @@ import type { Equipment } from "@/types/equipment";
 import { Alert } from "@/components/ui/Alert";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { ReservationForm } from "@/features/reservations/ReservationForm";
-import styles from "./page.module.css";
 
 export default async function NewReservationPage({
   searchParams,
@@ -19,9 +18,6 @@ export default async function NewReservationPage({
   let errorMessage: string | null = null;
 
   try {
-    // Every equipment item, for the select dropdown — the catalogue is not
-    // large enough (per docs/decisions.md scope) to warrant a paginated
-    // picker here.
     const result = await listEquipment({ limit: 100 }, cookieHeader);
     equipment = result.data;
   } catch (error) {
@@ -30,7 +26,7 @@ export default async function NewReservationPage({
   }
 
   return (
-    <div className={styles.page}>
+    <div className="flex flex-col gap-6">
       <PageHeader
         title="New Reservation"
         subtitle="Choose equipment and a time window. Items marked Instant are confirmed immediately; others require administrator approval."
@@ -41,7 +37,7 @@ export default async function NewReservationPage({
           {errorMessage}
         </Alert>
       ) : (
-        <div className={styles.formCard}>
+        <div className="max-w-[520px] bg-surface border border-border rounded-[var(--radius-lg)] shadow-xs p-6">
           <ReservationForm equipment={equipment ?? []} initialEquipmentId={equipmentId} />
         </div>
       )}

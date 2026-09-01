@@ -11,11 +11,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { IconUser, IconAlertCircle } from "@/components/ui/Icons";
 import { formatUtc } from "@/lib/format";
 import { roleTone } from "./roleTone";
-import styles from "./UsersTable.module.css";
 
-/** The one role-change action available for a given row, if any. SUPERADMIN
- * rows get none — "Do not display actions that the backend will reject" —
- * since the backend rejects every role change targeting a SuperAdmin. */
 function nextRoleFor(role: SafeUser["role"]): AssignableRole | null {
   if (role === "EMPLOYEE") return "ADMIN";
   if (role === "ADMIN") return "EMPLOYEE";
@@ -68,15 +64,25 @@ export function UsersTable({
   return (
     <>
       {/* Desktop Table */}
-      <div className={styles.tableWrapper}>
-        <table className={styles.table}>
+      <div className="hidden sm:block w-full overflow-x-auto">
+        <table className="w-full border-collapse text-sm text-left">
           <thead>
             <tr>
-              <th>Name</th>
-              <th>Email</th>
-              <th>Role</th>
-              <th>Created</th>
-              <th>Action</th>
+              <th className="text-xs font-semibold uppercase tracking-[0.05em] text-foreground-muted px-4 py-3 bg-surface-muted border-b border-border rounded-tl-[var(--radius-md)] whitespace-nowrap">
+                Name
+              </th>
+              <th className="text-xs font-semibold uppercase tracking-[0.05em] text-foreground-muted px-4 py-3 bg-surface-muted border-b border-border whitespace-nowrap">
+                Email
+              </th>
+              <th className="text-xs font-semibold uppercase tracking-[0.05em] text-foreground-muted px-4 py-3 bg-surface-muted border-b border-border whitespace-nowrap">
+                Role
+              </th>
+              <th className="text-xs font-semibold uppercase tracking-[0.05em] text-foreground-muted px-4 py-3 bg-surface-muted border-b border-border whitespace-nowrap">
+                Created
+              </th>
+              <th className="text-xs font-semibold uppercase tracking-[0.05em] text-foreground-muted px-4 py-3 bg-surface-muted border-b border-border rounded-tr-[var(--radius-md)] whitespace-nowrap">
+                Action
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -96,7 +102,7 @@ export function UsersTable({
       </div>
 
       {/* Mobile Card List */}
-      <div className={styles.mobileCardList}>
+      <div className="sm:hidden flex flex-col gap-4">
         {users.map((user) => (
           <UserCard
             key={user.id}
@@ -135,8 +141,8 @@ function RoleAction({ user, isSelf, state, onRequestChange, onCancel, onConfirm 
 
   if (state.mode === "confirming") {
     return (
-      <div className={styles.confirmGroup}>
-        <span className={styles.confirmLabel}>{actionLabel(target)}?</span>
+      <div className="flex items-center gap-2 flex-wrap">
+        <span className="text-[0.8125rem] font-medium text-foreground-secondary">{actionLabel(target)}?</span>
         <Button size="sm" variant="primary" onClick={() => onConfirm(target)}>
           Confirm
         </Button>
@@ -162,7 +168,7 @@ function RoleAction({ user, isSelf, state, onRequestChange, onCancel, onConfirm 
 function RowError({ state }: { state: RowState }) {
   if (state.mode !== "error") return null;
   return (
-    <div className={styles.rowError}>
+    <div className="flex items-center gap-1.5 mt-2 text-danger text-[0.8125rem]">
       <IconAlertCircle size={13} />
       <span>{state.message}</span>
     </div>
@@ -172,23 +178,25 @@ function RowError({ state }: { state: RowState }) {
 function UserRow(props: RowProps) {
   const { user } = props;
   return (
-    <tr>
-      <td>
-        <div className={styles.nameCell}>
-          <div className={styles.userIconBox}>
+    <tr className="group hover:bg-surface-subtle transition-colors duration-150">
+      <td className="p-4 border-b border-border text-foreground align-middle group-last:border-b-0">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-[var(--radius-md)] bg-surface-subtle border border-border-accent text-primary flex items-center justify-center shrink-0">
             <IconUser size={16} />
           </div>
-          <span className={styles.userName}>{user.name}</span>
+          <span className="font-semibold text-foreground">{user.name}</span>
         </div>
       </td>
-      <td className={styles.email}>{user.email}</td>
-      <td>
+      <td className="p-4 border-b border-border text-foreground-secondary align-middle group-last:border-b-0">{user.email}</td>
+      <td className="p-4 border-b border-border text-foreground align-middle group-last:border-b-0">
         <Badge tone={roleTone(user.role)} showDot={false}>
           {user.role}
         </Badge>
       </td>
-      <td className={styles.created}>{formatUtc(user.createdAt)}</td>
-      <td>
+      <td className="p-4 border-b border-border text-foreground-secondary align-middle tabular-nums whitespace-nowrap group-last:border-b-0">
+        {formatUtc(user.createdAt)}
+      </td>
+      <td className="p-4 border-b border-border text-foreground align-middle group-last:border-b-0">
         <RoleAction {...props} />
         <RowError state={props.state} />
       </td>
@@ -199,21 +207,21 @@ function UserRow(props: RowProps) {
 function UserCard(props: RowProps) {
   const { user } = props;
   return (
-    <div className={styles.mobileCard}>
-      <div className={styles.mobileCardHeader}>
-        <div className={styles.nameCell}>
-          <div className={styles.userIconBox}>
+    <div className="bg-surface border border-border rounded-[var(--radius-md)] p-4 flex flex-col gap-3">
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-[var(--radius-md)] bg-surface-subtle border border-border-accent text-primary flex items-center justify-center shrink-0">
             <IconUser size={16} />
           </div>
-          <span className={styles.userName}>{user.name}</span>
+          <span className="font-semibold text-foreground">{user.name}</span>
         </div>
         <Badge tone={roleTone(user.role)} showDot={false}>
           {user.role}
         </Badge>
       </div>
-      <p className={styles.email}>{user.email}</p>
-      <div className={styles.mobileCardFooter}>
-        <span className={styles.created}>Joined {formatUtc(user.createdAt)}</span>
+      <p className="text-foreground-secondary text-sm">{user.email}</p>
+      <div className="flex items-center justify-between gap-2 flex-wrap pt-2 border-t border-border">
+        <span className="text-[0.8125rem] text-foreground-secondary tabular-nums">Joined {formatUtc(user.createdAt)}</span>
         <RoleAction {...props} />
       </div>
       <RowError state={props.state} />

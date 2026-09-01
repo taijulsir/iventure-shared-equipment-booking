@@ -1,4 +1,8 @@
-import styles from "./Spinner.module.css";
+const sizeClasses = {
+  sm: "w-3.5 h-3.5",
+  md: "w-6 h-6",
+  lg: "w-9 h-9",
+};
 
 export function Spinner({
   size = "md",
@@ -7,5 +11,11 @@ export function Spinner({
   size?: "sm" | "md" | "lg";
   label?: string;
 }) {
-  return <span className={`${styles.spinner} ${styles[size]}`} role="status" aria-label={label} />;
+  return (
+    <span
+      className={["inline-block rounded-full border-2 border-current border-r-transparent animate-spin opacity-80", sizeClasses[size]].join(" ")}
+      role="status"
+      aria-label={label}
+    />
+  );
 }

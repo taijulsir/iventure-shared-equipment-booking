@@ -1,15 +1,6 @@
 import type { PaginationMeta } from "@/types/pagination";
 import { Button } from "./Button";
-import styles from "./Pagination.module.css";
 
-/**
- * Generic Previous/Next pagination control shared by every paginated list
- * view (Equipment, Reservations, Admin equipment management). `buildHref`
- * receives the target page and returns the URL to navigate to — callers
- * own their own query-string scheme (search/status/etc. alongside `page`).
- * Renders nothing when there is only one page, so it never shows up as
- * empty chrome on a short list.
- */
 export function Pagination({
   meta,
   buildHref,
@@ -25,7 +16,7 @@ export function Pagination({
   const hasNext = meta.page < meta.totalPages;
 
   return (
-    <nav className={styles.pagination} aria-label="Pagination">
+    <nav className="flex items-center justify-center gap-4 pt-2 flex-wrap" aria-label="Pagination">
       {hasPrev ? (
         <Button href={buildHref(meta.page - 1)} variant="outline" size="sm">
           Previous
@@ -36,7 +27,7 @@ export function Pagination({
         </Button>
       )}
 
-      <span className={styles.pageInfo}>
+      <span className="text-[0.8125rem] text-foreground-muted whitespace-nowrap">
         Page {meta.page} of {meta.totalPages} · {meta.total} total
       </span>
 

@@ -4,12 +4,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { IconEquipment } from "@/components/ui/Icons";
-import styles from "./EquipmentTable.module.css";
 
-/** `showBookAction` is only true for Employees viewing the catalogue — the
- * backend rejects an Admin/SuperAdmin reservation attempt anyway, so the
- * button simply isn't rendered for them ("do not display actions the
- * backend will reject"). */
 export function EquipmentTable({
   equipment,
   showBookAction = false,
@@ -30,29 +25,43 @@ export function EquipmentTable({
   return (
     <>
       {/* Desktop Table */}
-      <div className={styles.tableWrapper}>
-        <table className={styles.table}>
+      <div className="hidden sm:block w-full overflow-x-auto">
+        <table className="w-full border-collapse text-sm text-left">
           <thead>
             <tr>
-              <th>Equipment Item</th>
-              <th>Description</th>
-              <th>Booking Policy</th>
-              {showBookAction && <th>Action</th>}
+              <th className="text-xs font-semibold uppercase tracking-[0.05em] text-foreground-muted px-4 py-3 bg-surface-muted border-b border-border rounded-tl-[var(--radius-md)]">
+                Equipment Item
+              </th>
+              <th className="text-xs font-semibold uppercase tracking-[0.05em] text-foreground-muted px-4 py-3 bg-surface-muted border-b border-border">
+                Description
+              </th>
+              <th className="text-xs font-semibold uppercase tracking-[0.05em] text-foreground-muted px-4 py-3 bg-surface-muted border-b border-border">
+                Booking Policy
+              </th>
+              {showBookAction && (
+                <th className="text-xs font-semibold uppercase tracking-[0.05em] text-foreground-muted px-4 py-3 bg-surface-muted border-b border-border rounded-tr-[var(--radius-md)]">
+                  Action
+                </th>
+              )}
             </tr>
           </thead>
           <tbody>
             {equipment.map((item) => (
-              <tr key={item.id}>
-                <td>
-                  <Link href={`/equipment/${item.id}`} className={styles.nameCell}>
-                    <div className={styles.itemIconBox}>
+              <tr key={item.id} className="group hover:bg-surface-subtle transition-colors duration-150">
+                <td className="p-4 border-b border-border text-foreground align-middle group-last:border-b-0">
+                  <Link href={`/equipment/${item.id}`} className="flex items-center gap-3 w-fit group/link">
+                    <div className="w-9 h-9 rounded-[var(--radius-md)] bg-surface-subtle border border-border-accent text-primary flex items-center justify-center shrink-0">
                       <IconEquipment size={18} />
                     </div>
-                    <span className={styles.itemName}>{item.name}</span>
+                    <span className="font-semibold text-foreground group-hover/link:text-primary transition-colors duration-150">
+                      {item.name}
+                    </span>
                   </Link>
                 </td>
-                <td className={styles.description}>{item.description || "—"}</td>
-                <td>
+                <td className="p-4 border-b border-border text-foreground-secondary align-middle max-w-[48ch] leading-[1.45] group-last:border-b-0">
+                  {item.description || "—"}
+                </td>
+                <td className="p-4 border-b border-border text-foreground align-middle group-last:border-b-0">
                   {item.requiresApproval ? (
                     <Badge tone="warning">Requires approval</Badge>
                   ) : (
@@ -60,7 +69,7 @@ export function EquipmentTable({
                   )}
                 </td>
                 {showBookAction && (
-                  <td>
+                  <td className="p-4 border-b border-border text-foreground align-middle group-last:border-b-0">
                     <Button href={`/reservations/new?equipmentId=${item.id}`} variant="outline" size="sm">
                       Book
                     </Button>
@@ -73,15 +82,17 @@ export function EquipmentTable({
       </div>
 
       {/* Mobile Card List */}
-      <div className={styles.mobileCardList}>
+      <div className="sm:hidden flex flex-col gap-4">
         {equipment.map((item) => (
-          <div key={item.id} className={styles.mobileCard}>
-            <div className={styles.mobileCardHeader}>
-              <Link href={`/equipment/${item.id}`} className={styles.nameCell}>
-                <div className={styles.itemIconBox}>
+          <div key={item.id} className="bg-surface border border-border rounded-[var(--radius-md)] p-4 flex flex-col gap-3">
+            <div className="flex items-start justify-between gap-2">
+              <Link href={`/equipment/${item.id}`} className="flex items-center gap-3 w-fit group/link">
+                <div className="w-9 h-9 rounded-[var(--radius-md)] bg-surface-subtle border border-border-accent text-primary flex items-center justify-center shrink-0">
                   <IconEquipment size={18} />
                 </div>
-                <span className={styles.itemName}>{item.name}</span>
+                <span className="font-semibold text-foreground group-hover/link:text-primary transition-colors duration-150">
+                  {item.name}
+                </span>
               </Link>
               {item.requiresApproval ? (
                 <Badge tone="warning">Approval</Badge>
@@ -89,7 +100,7 @@ export function EquipmentTable({
                 <Badge tone="success">Instant</Badge>
               )}
             </div>
-            <p className={styles.description}>{item.description || "No description provided."}</p>
+            <p className="text-sm text-foreground-secondary leading-[1.45]">{item.description || "No description provided."}</p>
             {showBookAction && (
               <Button href={`/reservations/new?equipmentId=${item.id}`} variant="outline" size="sm" fullWidth>
                 Book

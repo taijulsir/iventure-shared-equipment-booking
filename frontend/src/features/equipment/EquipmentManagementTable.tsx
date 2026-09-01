@@ -11,7 +11,6 @@ import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { IconEquipment, IconAlertCircle } from "@/components/ui/Icons";
 import { EquipmentForm, type EquipmentFormValues } from "./EquipmentForm";
-import styles from "./EquipmentManagementTable.module.css";
 
 type RowState = { mode: "idle" } | { mode: "editing" } | { mode: "deleting" } | { mode: "error"; message: string };
 
@@ -57,11 +56,11 @@ export function EquipmentManagementTable({ equipment: initialEquipment }: { equi
   }
 
   return (
-    <div className={styles.wrapper}>
-      <div className={styles.createSection}>
+    <div className="flex flex-col gap-5">
+      <div className="flex">
         {isCreating ? (
-          <Card className={styles.createCard}>
-            <h2 className={styles.createTitle}>New Equipment</h2>
+          <Card className="p-5 w-full max-w-[480px]">
+            <h2 className="text-base font-semibold text-foreground mb-4">New Equipment</h2>
             <EquipmentForm submitLabel="Create" onSubmit={handleCreate} onCancel={() => setIsCreating(false)} />
           </Card>
         ) : (
@@ -78,13 +77,13 @@ export function EquipmentManagementTable({ equipment: initialEquipment }: { equi
           description="Add the first catalogue item using the button above."
         />
       ) : (
-        <div className={styles.list}>
+        <div className="flex flex-col gap-3">
           {equipment.map((item) => {
             const state = rowState(item.id);
 
             if (state.mode === "editing") {
               return (
-                <Card key={item.id} className={styles.editCard}>
+                <Card key={item.id} className="p-5 w-full max-w-[480px]">
                   <EquipmentForm
                     initialValues={{
                       name: item.name,
@@ -100,14 +99,16 @@ export function EquipmentManagementTable({ equipment: initialEquipment }: { equi
             }
 
             return (
-              <Card key={item.id} className={styles.row}>
-                <div className={styles.rowMain}>
-                  <div className={styles.itemIconBox}>
+              <Card key={item.id} className="flex items-center justify-between gap-4 p-4 flex-wrap">
+                <div className="flex items-center gap-3 flex-1 min-w-[260px]">
+                  <div className="w-9 h-9 rounded-[var(--radius-md)] bg-surface-subtle border border-border-accent text-primary flex items-center justify-center shrink-0">
                     <IconEquipment size={18} />
                   </div>
-                  <div className={styles.rowText}>
-                    <span className={styles.itemName}>{item.name}</span>
-                    <span className={styles.itemDescription}>{item.description || "No description"}</span>
+                  <div className="flex flex-col min-w-0">
+                    <span className="font-semibold text-foreground">{item.name}</span>
+                    <span className="text-[0.8125rem] text-foreground-secondary overflow-hidden text-ellipsis whitespace-nowrap max-w-[40ch]">
+                      {item.description || "No description"}
+                    </span>
                   </div>
                   {item.requiresApproval ? (
                     <Badge tone="warning">Requires approval</Badge>
@@ -116,10 +117,10 @@ export function EquipmentManagementTable({ equipment: initialEquipment }: { equi
                   )}
                 </div>
 
-                <div className={styles.rowActions}>
+                <div className="flex items-center gap-2 flex-wrap">
                   {state.mode === "deleting" ? (
-                    <div className={styles.confirmGroup}>
-                      <span className={styles.confirmLabel}>Delete this item?</span>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-[0.8125rem] font-medium text-foreground-secondary">Delete this item?</span>
                       <Button size="sm" variant="danger" onClick={() => handleDelete(item)}>
                         Confirm
                       </Button>
@@ -140,7 +141,7 @@ export function EquipmentManagementTable({ equipment: initialEquipment }: { equi
                 </div>
 
                 {state.mode === "error" && (
-                  <div className={styles.rowError}>
+                  <div className="flex items-center gap-1.5 text-danger text-[0.8125rem] w-full">
                     <IconAlertCircle size={13} />
                     <span>{state.message}</span>
                   </div>

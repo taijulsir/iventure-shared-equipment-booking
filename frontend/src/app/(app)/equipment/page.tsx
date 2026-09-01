@@ -10,7 +10,6 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { Pagination } from "@/components/ui/Pagination";
 import { EquipmentTable } from "@/features/equipment/EquipmentTable";
 import { EquipmentSearchBar } from "@/features/equipment/EquipmentSearchBar";
-import styles from "./page.module.css";
 
 const PAGE_LIMIT = 20;
 
@@ -48,7 +47,7 @@ export default async function EquipmentPage({
   }
 
   return (
-    <div className={styles.page}>
+    <div className="flex flex-col gap-6">
       <PageHeader
         title="Equipment Catalogue"
         subtitle="Browse shared enterprise equipment, review specifications, and check booking policies."
@@ -76,7 +75,7 @@ export default async function EquipmentPage({
         </Alert>
       ) : (
         <>
-          <div className={styles.tableCard}>
+          <div className="bg-surface border border-border rounded-[var(--radius-lg)] overflow-hidden shadow-xs">
             <EquipmentTable equipment={equipment ?? []} showBookAction={isEmployee} />
           </div>
           {meta && <Pagination meta={meta} buildHref={buildHref} />}

@@ -6,11 +6,8 @@ import { Alert } from "@/components/ui/Alert";
 import { Badge } from "@/components/ui/Badge";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { UsersTable } from "@/features/users/UsersTable";
-import styles from "./page.module.css";
 
 export default async function UserManagementPage() {
-  // Guaranteed non-null and SUPERADMIN by admin/users/layout.tsx, which runs
-  // first — re-reading it here just avoids a second network round trip.
   const currentUser = (await getServerSession())!;
   const cookieHeader = await getRequestCookieHeader();
 
@@ -27,7 +24,7 @@ export default async function UserManagementPage() {
   const count = users ? users.length : 0;
 
   return (
-    <div className={styles.page}>
+    <div className="flex flex-col gap-6">
       <PageHeader
         title="User Management"
         subtitle="Review every account and manage Employee/Administrator role assignments."
@@ -45,7 +42,7 @@ export default async function UserManagementPage() {
           {errorMessage}
         </Alert>
       ) : (
-        <div className={styles.tableCard}>
+        <div className="bg-surface border border-border rounded-[var(--radius-lg)] overflow-hidden shadow-xs">
           <UsersTable users={users ?? []} currentUserId={currentUser.id} />
         </div>
       )}

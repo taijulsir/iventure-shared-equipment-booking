@@ -1,6 +1,5 @@
 import type { AnchorHTMLAttributes, ButtonHTMLAttributes, ReactNode } from "react";
 import Link from "next/link";
-import styles from "./Button.module.css";
 import { Spinner } from "./Spinner";
 
 type BaseButtonProps = {
@@ -23,6 +22,20 @@ export type ButtonProps =
         href: string;
       });
 
+const variantClasses = {
+  primary: "bg-primary text-primary-contrast shadow-xs hover:bg-primary-hover hover:shadow-emerald active:bg-primary-active",
+  secondary: "bg-surface text-foreground border-border shadow-xs hover:bg-surface-muted hover:border-border-hover",
+  outline: "bg-transparent text-primary border-border-accent hover:bg-primary-subtle hover:border-primary",
+  ghost: "bg-transparent text-foreground-secondary border-transparent hover:bg-surface-muted hover:text-foreground",
+  danger: "bg-danger text-white hover:opacity-90 hover:shadow-[0_4px_12px_rgba(220,38,38,0.25)]",
+};
+
+const sizeClasses = {
+  sm: "px-3 py-1.5 text-[0.8125rem] rounded-[var(--radius-sm)]",
+  md: "px-4 py-[9px] text-sm rounded-[var(--radius-md)]",
+  lg: "px-6 py-3 text-base rounded-[var(--radius-lg)]",
+};
+
 export function Button({
   variant = "primary",
   size = "md",
@@ -34,11 +47,14 @@ export function Button({
   href,
   ...rest
 }: ButtonProps) {
+  const baseClasses =
+    "inline-flex items-center justify-center gap-2 border border-transparent font-medium leading-5 cursor-pointer whitespace-nowrap select-none no-underline transition-all duration-150 active:translate-y-[1px] disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2";
+
   const classNames = [
-    styles.button,
-    styles[variant],
-    size !== "md" ? styles[size] : "",
-    fullWidth ? styles.fullWidth : "",
+    baseClasses,
+    variantClasses[variant],
+    sizeClasses[size],
+    fullWidth ? "w-full" : "",
     className,
   ]
     .filter(Boolean)

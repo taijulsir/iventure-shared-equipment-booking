@@ -1,6 +1,26 @@
 import type { ReactNode } from "react";
 import { IconAlertCircle, IconCheck, IconInfo } from "./Icons";
-import styles from "./Alert.module.css";
+
+export type AlertVariant = "error" | "success" | "warning" | "info";
+
+const variantClasses: Record<AlertVariant, { container: string; icon: string }> = {
+  error: {
+    container: "bg-danger-bg border-danger-border text-danger-text",
+    icon: "text-danger",
+  },
+  success: {
+    container: "bg-success-bg border-success-border text-success-text",
+    icon: "text-success",
+  },
+  warning: {
+    container: "bg-warning-bg border-warning-border text-warning-text",
+    icon: "text-warning",
+  },
+  info: {
+    container: "bg-info-bg border-info-border text-info-text",
+    icon: "text-info",
+  },
+};
 
 export function Alert({
   variant = "info",
@@ -8,7 +28,7 @@ export function Alert({
   children,
   className,
 }: {
-  variant?: "error" | "success" | "warning" | "info";
+  variant?: AlertVariant;
   title?: string;
   children: ReactNode;
   className?: string;
@@ -16,7 +36,6 @@ export function Alert({
   const getIcon = () => {
     switch (variant) {
       case "error":
-        return <IconAlertCircle size={18} />;
       case "warning":
         return <IconAlertCircle size={18} />;
       case "success":
@@ -27,16 +46,24 @@ export function Alert({
     }
   };
 
+  const currentVariant = variantClasses[variant];
+
   return (
     <div
-      className={[styles.alert, styles[variant], className].filter(Boolean).join(" ")}
+      className={[
+        "flex items-start gap-3 border rounded-[var(--radius-md)] px-4 py-3 text-sm leading-[1.35rem]",
+        currentVariant.container,
+        className,
+      ]
+        .filter(Boolean)
+        .join(" ")}
       role={variant === "error" ? "alert" : "status"}
     >
-      <span className={styles.iconWrapper} aria-hidden="true">
+      <span className={["shrink-0 mt-px", currentVariant.icon].join(" ")} aria-hidden="true">
         {getIcon()}
       </span>
-      <div className={styles.content}>
-        {title && <p className={styles.title}>{title}</p>}
+      <div className="flex-1">
+        {title && <p className="font-semibold mb-0.5">{title}</p>}
         <div>{children}</div>
       </div>
     </div>

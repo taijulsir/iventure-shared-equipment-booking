@@ -3,7 +3,6 @@
 import type { ChangeEvent } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Select } from "@/components/ui/Select";
-import styles from "./ReservationFilters.module.css";
 
 const STATUS_OPTIONS = [
   { label: "All statuses", value: "" },
@@ -13,8 +12,6 @@ const STATUS_OPTIONS = [
   { label: "Cancelled", value: "CANCELLED" },
 ];
 
-/** Drives GET /reservations's real `status` query param via the URL, same
- * approach as EquipmentSearchBar — no client-side re-filtering. */
 export function ReservationFilters({ initialStatus }: { initialStatus: string }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -32,7 +29,7 @@ export function ReservationFilters({ initialStatus }: { initialStatus: string })
   }
 
   return (
-    <div className={styles.filters}>
+    <div className="max-w-[220px]">
       <Select
         label="Filter by status"
         options={STATUS_OPTIONS}
