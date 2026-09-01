@@ -36,6 +36,19 @@ Do this once, before the first automated deployment:
    Re-running this later with the same `SUPERADMIN_EMAIL` is safe (idempotent — see `backend/src/scripts/seed-superadmin.ts`).
 9. Point a reverse proxy already running on the VPS (Nginx, Caddy, etc. — managed outside this repo) at `127.0.0.1:3000` (backend) and `127.0.0.1:3001` (frontend), and obtain TLS certificates for your domain(s) (e.g. via Certbot/Let's Encrypt). This repo's Docker Compose stack deliberately does not publish these ports to `0.0.0.0` or terminate TLS itself — see `docs/architecture.md`.
 
+   **Required for the backend location block:** the proxy must set `X-Forwarded-For` to the real client address only — never pass through or append to a client-supplied value — so the backend's login rate limiter (`LoginThrottlerGuard`, keyed off `request.ip`) cannot be bypassed by a client sending its own `X-Forwarded-For` header. With Nginx:
+
+   ```nginx
+   location / {
+       proxy_pass http://127.0.0.1:3000;
+       proxy_set_header X-Forwarded-For $remote_addr;
+       proxy_set_header X-Forwarded-Proto $scheme;
+       proxy_set_header Host $host;
+   }
+   ```
+
+   `proxy_set_header X-Forwarded-For $remote_addr;` — not the common `$proxy_add_x_forwarded_for` — deliberately overwrites rather than appends, so no attacker-controlled prefix can ever reach the backend. This pairs with `backend/src/main.ts`'s `app.set('trust proxy', 1)` (production only), which trusts exactly this one hop (see `docs/decisions.md`, "Login Rate Limiting Reversal and Trusted Proxy Configuration").
+
 ## 3. Required GitHub Actions secrets
 
 Set these under the repository's **Settings → Secrets and variables → Actions**. Nothing else is required — application configuration (database credentials, `JWT_SECRET`, the frontend's API base URL, SuperAdmin bootstrap credentials) intentionally lives only in the VPS's own `.env.production`, never here.

@@ -837,3 +837,31 @@ Logs strictly exclude:
 - `Authorization` and `Cookie` headers
 - `DATABASE_URL` and database passwords
 - Full request bodies or personally identifiable bulk payloads
+
+---
+
+## 23. Login Rate Limiting Reversal and Trusted Proxy Configuration
+
+### Context
+
+Decision 14 ("Scope and Over-Engineering") explicitly named login rate limiting as out of scope: "it is out of scope for this assessment rather than an oversight, and can be added later if a real deployment required it." That condition has now been met — the application is deployed as a real, internet-facing production service (see README, "Live Deployment"; `docs/architecture.md`, "Deployment Architecture"), reachable by anyone, not just an assessment reviewer running it locally. An unthrottled `POST /auth/login` on a public URL is a real credential-stuffing/brute-force surface that did not exist while the project only ran locally.
+
+### Decision
+
+Reverse the exclusion in decision 14 for this one item only. Add `LoginThrottlerGuard`, an in-memory, IP-keyed sliding-window limiter (20 attempts / 60 seconds) on `POST /auth/login`. Every other item decision 14 excludes (Redis, BullMQ, WebSockets, microservices, Kubernetes, Elasticsearch, analytics infrastructure) remains excluded — this reversal is scoped to login rate limiting specifically, not a general reopening of that decision.
+
+### Why in-memory / single-instance, not Redis
+
+The production topology (decision 21; `docs/architecture.md`, "Production topology") is a single VPS running one backend container — there is no horizontal scaling, load balancer, or multi-instance deployment for this assessment's scope, so there is no second process for an in-memory Map to be inconsistent with. Introducing Redis solely to back a single process's rate-limit counters would add exactly the operational complexity (deployment, configuration, another container, another failure mode) that decision 12 already rejected for this project, without a concrete multi-instance requirement to justify it. If the deployment ever becomes multi-instance, this is the concrete trigger to revisit decision 12 and move the limiter's state to Redis — not before.
+
+### Trusted reverse-proxy IP handling
+
+A naive implementation keyed on a client-supplied `X-Forwarded-For` header is not a rate limiter at all — a client can reset its own bucket on every request simply by sending a different header value. Correct IP attribution requires knowing, structurally, how many reverse-proxy hops sit in front of the application:
+
+* **Production** (`Internet -> Nginx -> Docker backend`, one hop): `backend/src/main.ts` calls `app.set('trust proxy', 1)`, but only when `NODE_ENV=production`. Express then resolves `request.ip` by trusting exactly the one hop it is directly connected to (the VPS's Nginx) and using the address that hop reports, never a client-supplied prefix ahead of it. This requires Nginx itself to report the real client address rather than passing through client input — `docs/deployment.md` (§2, step 9) now documents the required directive: `proxy_set_header X-Forwarded-For $remote_addr;` (overwrite, not the common append-with-`$proxy_add_x_forwarded_for` form), so the header Express sees is never attacker-influenced in the first place. The two are deliberately layered: Nginx sanitizing the header and Express trusting only one hop are each independently sufficient, so a mistake in either alone does not reopen the bypass.
+* **Everywhere else** (local dev, CI, e2e tests): `trust proxy` is left at its default (`false`) because there genuinely is no reverse proxy in front of the app in these environments. Express then ignores `X-Forwarded-For` entirely and `request.ip` is the raw socket address of whoever actually connected — still not spoofable by a header.
+* `LoginThrottlerGuard` itself never reads `X-Forwarded-For` (or any other header) directly; it only ever reads `request.ip`, delegating all proxy-trust logic to Express's own well-tested resolution rather than reimplementing it. This was a deliberate simplification over hand-parsing the header, precisely because a hand-rolled parse (taking the first comma-separated value, as an earlier version of this guard did) trusts client input unconditionally and is the bypass this decision exists to close.
+
+### Why not the general RBAC/ownership/reservation surface
+
+This reversal is scoped narrowly to `POST /auth/login`. It does not extend to registration, reservation endpoints, or any other route — none of those were flagged as needing it, and decision 14's general preference against unrequested infrastructure still applies everywhere else.

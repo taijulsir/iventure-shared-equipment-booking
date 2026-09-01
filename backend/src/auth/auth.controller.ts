@@ -15,6 +15,7 @@ import { AuthService } from './auth.service.js';
 import { RegisterDto } from './dto/register.dto.js';
 import { LoginDto } from './dto/login.dto.js';
 import { JwtAuthGuard } from './guards/jwt-auth.guard.js';
+import { LoginThrottlerGuard } from './guards/login-throttler.guard.js';
 import { AUTH_COOKIE_NAME, getAuthCookieOptions } from './cookie.util.js';
 import type { AuthenticatedRequest, SafeUser } from './types.js';
 
@@ -32,6 +33,7 @@ export class AuthController {
   }
 
   @Post('login')
+  @UseGuards(LoginThrottlerGuard)
   @HttpCode(HttpStatus.OK)
   async login(
     @Body() dto: LoginDto,
@@ -43,6 +45,7 @@ export class AuthController {
 
     return user;
   }
+
 
   @Get('me')
   @UseGuards(JwtAuthGuard)
