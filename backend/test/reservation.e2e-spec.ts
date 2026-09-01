@@ -579,6 +579,39 @@ describe('Reservation (e2e)', () => {
       expect(response.body.status).toBe('REJECTED');
     });
 
+    it('allows SuperAdmin to approve a PENDING reservation too (role hierarchy)', async () => {
+      const created = await agentEmployeeA
+        .post('/reservations')
+        .send({
+          equipmentId: equipmentRequiresApprovalId,
+          startTime: '2027-03-14T10:00:00.000Z',
+          endTime: '2027-03-14T12:00:00.000Z',
+        })
+        .expect(201);
+      expect(created.body.status).toBe('PENDING');
+
+      const response = await agentSuperAdmin
+        .patch(`/reservations/${created.body.id}/approve`)
+        .expect(200);
+      expect(response.body.status).toBe('CONFIRMED');
+    });
+
+    it('allows SuperAdmin to reject a PENDING reservation too (role hierarchy)', async () => {
+      const created = await agentEmployeeA
+        .post('/reservations')
+        .send({
+          equipmentId: equipmentRequiresApprovalId,
+          startTime: '2027-03-15T10:00:00.000Z',
+          endTime: '2027-03-15T12:00:00.000Z',
+        })
+        .expect(201);
+
+      const response = await agentSuperAdmin
+        .patch(`/reservations/${created.body.id}/reject`)
+        .expect(200);
+      expect(response.body.status).toBe('REJECTED');
+    });
+
     it('returns 404 when approving a non-existent reservation', async () => {
       await agentAdmin
         .patch('/reservations/00000000-0000-0000-0000-000000000000/approve')

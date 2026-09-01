@@ -20,7 +20,7 @@ import { EquipmentService } from './equipment.service.js';
 import { CreateEquipmentDto } from './dto/create-equipment.dto.js';
 import { UpdateEquipmentDto } from './dto/update-equipment.dto.js';
 import { ListEquipmentDto } from './dto/list-equipment.dto.js';
-import type { PaginatedResult } from './types.js';
+import type { EquipmentWithAvailability, PaginatedResult } from './types.js';
 
 /**
  * Every route here requires authentication (JwtAuthGuard). RolesGuard is
@@ -29,6 +29,11 @@ import type { PaginatedResult } from './types.js';
  * restriction on them beyond "authenticated", per the authorization matrix:
  * EMPLOYEE and ADMIN can both read; only ADMIN (and SUPERADMIN, per the
  * SUPERADMIN -> ADMIN -> EMPLOYEE role hierarchy) can create/update/delete.
+ *
+ * GET / additionally accepts an optional startTime/endTime window (see
+ * ListEquipmentDto) — when both are given, each item in the response is
+ * annotated with `available` for that exact window, computed against
+ * existing active reservations (see EquipmentService.findAll).
  */
 @Controller('equipment')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -36,7 +41,7 @@ export class EquipmentController {
   constructor(private readonly equipmentService: EquipmentService) {}
 
   @Get()
-  findAll(@Query() query: ListEquipmentDto): Promise<PaginatedResult<Equipment>> {
+  findAll(@Query() query: ListEquipmentDto): Promise<PaginatedResult<EquipmentWithAvailability>> {
     return this.equipmentService.findAll(query);
   }
 

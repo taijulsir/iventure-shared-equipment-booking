@@ -64,12 +64,18 @@ Prisma's schema DSL cannot express PostgreSQL `EXCLUDE` constraints directly. Wh
 
 Authentication will identify the current user via a JWT issued at login and stored in an HTTP-only cookie.
 
-Public registration creates Employee accounts only. Administrator accounts are provisioned separately (for example, seeded directly in the database) and are never assignable through the public registration payload.
+Public registration creates Employee accounts only, never assignable a different role through the registration payload. There are three roles, forming a hierarchy: SuperAdmin → Administrator → Employee (see Requirements, "SuperAdmin" and "Role Hierarchy").
+
+* The single SuperAdmin account is provisioned by a dedicated bootstrap script run outside the application (never through an API endpoint).
+* Administrator accounts are provisioned either the same way (seeded directly) or, after the SuperAdmin exists, by the SuperAdmin promoting an existing Employee through the user-management API.
+* The role-hierarchy grant is additive at the route level (an Administrator-only route also admits SuperAdmin) rather than a general "higher role passes any lower role's check" rule — this keeps Employee-only routes (creating/cancelling a reservation) genuinely Employee-only, not just "not Administrator."
 
 Authorization operates at two levels:
 
-* Role-based access control (RBAC), restricting actions to the Employee or Administrator role as appropriate.
+* Role-based access control (RBAC), restricting actions to the Employee, Administrator, or SuperAdmin role as appropriate — including a SUPERADMIN-only Users module (list users, view a user, change an Employee's/Administrator's role) that enforces the role-transition rules in Requirements ("Role Hierarchy") at the API layer, not just in the UI.
 * Resource-ownership checks for reservation-specific actions: an Employee may only view or cancel reservations they created. A valid Employee session alone does not grant access to another employee's reservation.
+
+RBAC and resource ownership remain two separate mechanisms: a role granting broader RBAC access (e.g. SuperAdmin) is never, by itself, also an ownership exemption — an exemption still has to be explicitly granted per action, as it already is for Administrators viewing/managing reservations.
 
 The backend will enforce authorization rules rather than relying only on frontend visibility.
 
@@ -113,6 +119,8 @@ The system will prevent overlapping reservations for the same equipment using tw
 2. A PostgreSQL `EXCLUDE` constraint (using the `btree_gist` extension) on the reservations table as the authoritative, database-level guarantee, so overlapping PENDING/CONFIRMED reservations for the same equipment remain impossible even under concurrent requests.
 
 The full constraint design and rationale are documented in Decisions. The exact SQL migration is an implementation detail and is not written here.
+
+The same overlap query backs a second, read-only use: `GET /equipment` accepts an optional requested time window and reports whether each item is available for it (Requirements, "View and search equipment"). This is computed against the reservations table on every request — never a stored field on Equipment — using the identical overlap rule reservation creation enforces, kept in one shared place rather than duplicated between the two.
 
 ## 9. Error Handling
 

@@ -1,15 +1,27 @@
 import Link from "next/link";
-import type { Equipment } from "@/types/equipment";
+import type { EquipmentWithAvailability } from "@/types/equipment";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { IconEquipment } from "@/components/ui/Icons";
 
+/** `available` is `null` unless the list was requested with a startTime/
+ * endTime window — nothing renders in that case, so the default catalogue
+ * view is unchanged. */
+function AvailabilityBadge({ available }: { available: boolean | null }) {
+  if (available === null) return null;
+  return available ? (
+    <Badge tone="success" showDot={false}>Available</Badge>
+  ) : (
+    <Badge tone="danger" showDot={false}>Booked</Badge>
+  );
+}
+
 export function EquipmentTable({
   equipment,
   showBookAction = false,
 }: {
-  equipment: Equipment[];
+  equipment: EquipmentWithAvailability[];
   showBookAction?: boolean;
 }) {
   if (equipment.length === 0) {
@@ -62,11 +74,14 @@ export function EquipmentTable({
                   {item.description || "—"}
                 </td>
                 <td className="p-4 border-b border-border text-foreground align-middle group-last:border-b-0">
-                  {item.requiresApproval ? (
-                    <Badge tone="warning">Requires approval</Badge>
-                  ) : (
-                    <Badge tone="success">Instant booking</Badge>
-                  )}
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {item.requiresApproval ? (
+                      <Badge tone="warning">Requires approval</Badge>
+                    ) : (
+                      <Badge tone="success">Instant booking</Badge>
+                    )}
+                    <AvailabilityBadge available={item.available} />
+                  </div>
                 </td>
                 {showBookAction && (
                   <td className="p-4 border-b border-border text-foreground align-middle group-last:border-b-0">
@@ -94,11 +109,14 @@ export function EquipmentTable({
                   {item.name}
                 </span>
               </Link>
-              {item.requiresApproval ? (
-                <Badge tone="warning">Approval</Badge>
-              ) : (
-                <Badge tone="success">Instant</Badge>
-              )}
+              <div className="flex items-center gap-2 flex-wrap justify-end">
+                {item.requiresApproval ? (
+                  <Badge tone="warning">Approval</Badge>
+                ) : (
+                  <Badge tone="success">Instant</Badge>
+                )}
+                <AvailabilityBadge available={item.available} />
+              </div>
             </div>
             <p className="text-sm text-foreground-secondary leading-[1.45]">{item.description || "No description provided."}</p>
             {showBookAction && (

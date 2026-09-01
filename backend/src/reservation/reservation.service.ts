@@ -21,6 +21,7 @@ import {
   DEFAULT_PAGE,
   type PaginatedResult,
 } from '../common/pagination.js';
+import { overlappingReservationWhere } from '../common/reservation-overlap.js';
 
 // Prisma's known-request-error code used below (equipment lookups reuse the
 // same pattern already established in EquipmentService):
@@ -33,14 +34,6 @@ const PRISMA_ERROR_RECORD_NOT_FOUND = 'P2025';
 // P2002 for a unique-constraint violation) — it surfaces as a generic
 // PrismaClientKnownRequestError with the raw driver error nested in `meta`.
 const POSTGRES_EXCLUSION_VIOLATION = '23P01';
-
-// Slot-blocking rule (docs/decisions.md, "Reservation Status Model"): only
-// PENDING/CONFIRMED reservations occupy a time slot; REJECTED/CANCELLED do
-// not. Mirrors the WHERE clause on the database's EXCLUDE constraint.
-const ACTIVE_STATUSES: ReservationStatus[] = [
-  ReservationStatus.PENDING,
-  ReservationStatus.CONFIRMED,
-];
 
 // Roles exempt from reservation ownership checks (docs/decisions.md,
 // "Role-Based Access vs Resource Ownership"): Administrators (and
@@ -124,16 +117,8 @@ export class ReservationService {
     startTime: Date,
     endTime: Date,
   ): Promise<void> {
-    // Overlap rule (docs/decisions.md): newStart < existingEnd AND
-    // newEnd > existingStart. Reservations that only touch at a boundary
-    // (e.g. 10:00-12:00 and 12:00-14:00) do not overlap.
     const conflict = await this.prisma.reservation.findFirst({
-      where: {
-        equipmentId,
-        status: { in: ACTIVE_STATUSES },
-        startTime: { lt: endTime },
-        endTime: { gt: startTime },
-      },
+      where: overlappingReservationWhere(equipmentId, startTime, endTime),
     });
 
     if (conflict) {

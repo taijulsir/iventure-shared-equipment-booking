@@ -11,8 +11,9 @@ import { OwnershipService } from './ownership.service.js';
 
 // Kept as a named reference so it can be re-exported below, not just
 // imported — JwtAuthGuard depends on JwtService, and any module that wants
-// to `@UseGuards(JwtAuthGuard)` (e.g. AuthorizationDemoModule) needs
-// JwtService resolvable in its own injector, not just JwtAuthGuard itself.
+// to `@UseGuards(JwtAuthGuard)` (e.g. EquipmentModule, ReservationModule,
+// UsersModule) needs JwtService resolvable in its own injector, not just
+// JwtAuthGuard itself.
 const jwtModule = JwtModule.registerAsync({
   imports: [ConfigModule],
   inject: [ConfigService],

@@ -33,6 +33,18 @@ export function datetimeLocalValueToUtcIso(value: string): string {
 }
 
 /**
+ * The inverse of `datetimeLocalValueToUtcIso` — for pre-filling a
+ * `datetime-local` input from a UTC ISO string already round-tripped
+ * through a URL (e.g. the Equipment catalogue's availability filter).
+ * Truncates to minute precision ("YYYY-MM-DDTHH:mm"), which is exactly
+ * what `datetime-local` accepts and exactly what its counterpart produces
+ * — anything with seconds/milliseconds is stripped, not rounded.
+ */
+export function utcIsoToDatetimeLocalValue(iso: string): string {
+  return iso.length >= 16 ? iso.slice(0, 16) : iso;
+}
+
+/**
  * Mirrors the backend's "Definition of Upcoming Reservation"
  * (docs/decisions.md): startTime > now. Used only to decide whether to
  * show a Cancel button — the backend re-checks this on every actual cancel

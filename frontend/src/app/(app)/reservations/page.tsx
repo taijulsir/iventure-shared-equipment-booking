@@ -42,13 +42,22 @@ export default async function ReservationsPage({
   let errorMessage: string | null = null;
 
   try {
-    const [reservationResult, equipmentPage] = await Promise.all([
-      listReservations({ status, page, limit: PAGE_LIMIT }, cookieHeader),
-      listEquipment({ limit: 100 }, cookieHeader),
-    ]);
+    const reservationResult = await listReservations(
+      { status, page, limit: PAGE_LIMIT },
+      cookieHeader,
+    );
     reservations = reservationResult.data;
     meta = reservationResult.meta;
-    equipmentNameById = Object.fromEntries(equipmentPage.data.map((item) => [item.id, item.name]));
+
+    // Resolve names for exactly the equipment this page of reservations
+    // references — not a fixed-size slice of the catalogue, so this never
+    // silently falls back to a raw id once the catalogue grows past some
+    // arbitrary cap (see docs/decisions.md, "Resolving Equipment Names...").
+    const equipmentIds = [...new Set(reservations.map((reservation) => reservation.equipmentId))];
+    if (equipmentIds.length > 0) {
+      const equipmentPage = await listEquipment({ ids: equipmentIds }, cookieHeader);
+      equipmentNameById = Object.fromEntries(equipmentPage.data.map((item) => [item.id, item.name]));
+    }
   } catch (error) {
     errorMessage =
       error instanceof ApiError ? error.message : "Something went wrong loading reservations.";

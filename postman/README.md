@@ -130,7 +130,7 @@ newman run ../postman/collections/iventure-api.postman_collection.json \
   -e ../postman/environments/iventure-local.postman_environment.json
 ```
 
-Expected output: **86 requests, 132 assertions, 0 failures** (assuming the
+Expected output: **99 requests, 152 assertions, 0 failures** (assuming the
 Admin and SuperAdmin accounts have been seeded — see steps 3 and 4). The run is deterministic and
 safe to repeat: every run generates its own timestamp-based `runId` and
 registers fresh, uniquely-emailed test users, so back-to-back runs never
@@ -226,12 +226,13 @@ endpoints throughout `3. Equipment`, `4. Reservations`, and
 `5. Approval Workflow` (each such request is named to say what it's
 proving, e.g. *"Create Equipment - Employee Forbidden (Error Example)"*,
 *"Get Reservation By Id - Another Employee's (Error Example)"*), rather than
-being pulled into a separate synthetic folder. The backend does have a
-small set of `/_authz-demo/*` endpoints, but those are explicitly
-test/support scaffolding built to verify the RBAC/ownership mechanism
-*before* the real Equipment/Reservation endpoints existed (see the code
-comments in `backend/src/auth/testing/`) — they are not part of the
-product's API surface, so this collection does not include them.
+being pulled into a separate synthetic folder. The backend used to also
+carry a small set of `/_authz-demo/*` endpoints — test/support scaffolding
+built to verify the RBAC/ownership mechanism *before* the real Equipment/
+Reservation endpoints existed — but those were never part of the product's
+API surface, and have been removed now that real ownership-checked routes
+(GET/PATCH `/reservations/:id`, etc.) cover the same ground; this collection
+never included them.
 
 Covered explicitly:
 
@@ -245,13 +246,32 @@ Covered explicitly:
   Administrators); still fully subject to authentication (an unauthenticated
   request to an Admin-only route is 401, not 403); **cannot** access
   `/users` at all (403) — being Admin does not grant User Management access
-- SuperAdmin: everything an Administrator can do, **plus** exclusive access
-  to `/users` (list, get, change role); can promote EMPLOYEE → ADMIN and
-  demote ADMIN → EMPLOYEE; **cannot** assign SUPERADMIN to anyone (400,
-  rejected by request validation before it ever reaches a permission check);
-  **cannot** change their own role or any other SuperAdmin's role (403);
-  requesting a role a user already has is rejected as an invalid transition
-  (409), not treated as a no-op success
+- SuperAdmin: everything an Administrator can do — proven directly, not just
+  asserted, via *"Create/Update/Delete Equipment - SuperAdmin Allowed"* in
+  `3. Equipment` and *"Approve/Reject Reservation - SuperAdmin Allowed"* in
+  `5. Approval Workflow`, each hitting the exact same routes as the
+  equivalent `[Admin]` requests but with a `SUPERADMIN` session — **plus**
+  exclusive access to `/users` (list, get, change role); can promote
+  EMPLOYEE → ADMIN and demote ADMIN → EMPLOYEE; **cannot** assign
+  SUPERADMIN to anyone (400, rejected by request validation before it ever
+  reaches a permission check); **cannot** change their own role or any
+  other SuperAdmin's role (403); requesting a role a user already has is
+  rejected as an invalid transition (409), not treated as a no-op success
+
+## Equipment availability coverage
+
+`GET /equipment` accepts an optional `startTime`/`endTime` window (both
+required together — providing only one, or an inverted range, is a 400) and
+annotates each returned item with `available` (`true`/`false`), computed
+against the exact same active-reservation overlap rule reservation creation
+itself enforces — not a second, separately-maintained copy of it. `available`
+is `null` when no window is given (unchanged default browsing behavior).
+`3. Equipment` proves `available: true` for a free window; `4. Reservations`
+immediately re-checks the same equipment right after booking it and proves
+`available: false` for that exact window. A separate `ids` filter (`?ids=a&
+ids=b`) fetches a known set of equipment by id, bypassing search/pagination
+— what the frontend uses to resolve equipment names for a page of
+reservations without capping at some fixed catalogue size.
 
 ## Reservation lifecycle coverage
 
@@ -310,7 +330,7 @@ Covered explicitly:
 
 ## Regenerating the collection
 
-The collection file is large (86 requests as of this writing) and was generated from a small
+The collection file is large (99 requests as of this writing) and was generated from a small
 Node script for consistency rather than hand-edited in the Postman JSON
 format. If you need to make structural changes, editing the exported JSON
 directly (via the Postman app, then re-exporting) is the simplest path for
