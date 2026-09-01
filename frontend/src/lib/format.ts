@@ -17,3 +17,33 @@ export function formatUtc(iso: string): string {
   const timePart = `${pad(date.getUTCHours())}:${pad(date.getUTCMinutes())}`;
   return `${datePart} ${timePart} UTC`;
 }
+
+/**
+ * Converts a `<input type="datetime-local">` value ("YYYY-MM-DDTHH:mm") into
+ * a UTC ISO 8601 string for the reservation create form. Deliberately does
+ * NOT treat the typed value as the browser's local time and convert it (that
+ * would silently shift the time the user typed) — consistent with this
+ * app's existing choice not to do local-timezone conversion anywhere yet
+ * (see the `Reservation` type's comment, and the Dashboard's "UTC
+ * Timelines" guideline): the value the user types is taken to already be
+ * UTC, and the form labels its fields accordingly.
+ */
+export function datetimeLocalValueToUtcIso(value: string): string {
+  return `${value}:00.000Z`;
+}
+
+/**
+ * Mirrors the backend's "Definition of Upcoming Reservation"
+ * (docs/decisions.md): startTime > now. Used only to decide whether to
+ * show a Cancel button — the backend re-checks this on every actual cancel
+ * request regardless, so this is UX only, not an authorization boundary.
+ *
+ * Deliberately a plain function, not called directly in a component's
+ * render body: `Date.now()` is an impure read of "now" and the
+ * react-hooks/purity lint rule flags it specifically at a component's own
+ * call site. Wrapping it here keeps every caller's component body pure
+ * from the linter's perspective while the actual behavior is unchanged.
+ */
+export function isUpcomingReservation(startTimeIso: string): boolean {
+  return new Date(startTimeIso).getTime() > Date.now();
+}

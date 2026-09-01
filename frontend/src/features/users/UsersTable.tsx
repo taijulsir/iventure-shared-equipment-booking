@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import type { AssignableRole, SafeUser } from "@/types/user";
 import { updateUserRole } from "@/lib/api/users";
-import { ApiError } from "@/lib/api/core";
+import { resolveApiErrorMessage } from "@/lib/api/handleApiError";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -34,6 +35,7 @@ export function UsersTable({
   users: SafeUser[];
   currentUserId: string;
 }) {
+  const router = useRouter();
   const [users, setUsers] = useState(initialUsers);
   const [rowStates, setRowStates] = useState<Record<string, RowState>>({});
 
@@ -48,8 +50,7 @@ export function UsersTable({
       setUsers((prev) => prev.map((row) => (row.id === updated.id ? updated : row)));
       setRowState(user.id, { mode: "idle" });
     } catch (error) {
-      const message =
-        error instanceof ApiError ? error.message : "Something went wrong. Please try again.";
+      const message = resolveApiErrorMessage(error, () => router.push("/login"));
       setRowState(user.id, { mode: "error", message });
     }
   }

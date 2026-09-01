@@ -1,30 +1,25 @@
-import { getServerSession, getRequestCookieHeader } from "@/lib/api/server-session";
+import { getRequestCookieHeader } from "@/lib/api/server-session";
 import { listEquipment } from "@/lib/api/equipment";
 import { ApiError } from "@/lib/api/core";
 import type { Equipment } from "@/types/equipment";
 import type { PaginationMeta } from "@/types/pagination";
 import { Alert } from "@/components/ui/Alert";
 import { Badge } from "@/components/ui/Badge";
-import { Button } from "@/components/ui/Button";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Pagination } from "@/components/ui/Pagination";
-import { EquipmentTable } from "@/features/equipment/EquipmentTable";
 import { EquipmentSearchBar } from "@/features/equipment/EquipmentSearchBar";
+import { EquipmentManagementTable } from "@/features/equipment/EquipmentManagementTable";
 import styles from "./page.module.css";
 
 const PAGE_LIMIT = 20;
 
-export default async function EquipmentPage({
+export default async function AdminEquipmentPage({
   searchParams,
 }: {
   searchParams: Promise<{ search?: string; page?: string }>;
 }) {
   const { search, page: pageParam } = await searchParams;
   const page = Number(pageParam) > 0 ? Number(pageParam) : 1;
-
-  const user = await getServerSession();
-  const isEmployee = user?.role === "EMPLOYEE";
-  const isAdmin = user?.role === "ADMIN" || user?.role === "SUPERADMIN";
   const cookieHeader = await getRequestCookieHeader();
 
   let equipment: Equipment[] | null = null;
@@ -44,26 +39,19 @@ export default async function EquipmentPage({
     const params = new URLSearchParams();
     if (search) params.set("search", search);
     params.set("page", String(targetPage));
-    return `/equipment?${params.toString()}`;
+    return `/admin/equipment?${params.toString()}`;
   }
 
   return (
     <div className={styles.page}>
       <PageHeader
-        title="Equipment Catalogue"
-        subtitle="Browse shared enterprise equipment, review specifications, and check booking policies."
+        title="Equipment Management"
+        subtitle="Add, edit, and decommission shared equipment catalogue items."
         badge={
           meta && (
             <Badge tone="neutral" showDot={false}>
               {meta.total} {meta.total === 1 ? "Item" : "Items"}
             </Badge>
-          )
-        }
-        action={
-          isAdmin && (
-            <Button href="/admin/equipment" variant="secondary" size="md">
-              Manage Equipment
-            </Button>
           )
         }
       />
@@ -76,9 +64,7 @@ export default async function EquipmentPage({
         </Alert>
       ) : (
         <>
-          <div className={styles.tableCard}>
-            <EquipmentTable equipment={equipment ?? []} showBookAction={isEmployee} />
-          </div>
+          <EquipmentManagementTable equipment={equipment ?? []} />
           {meta && <Pagination meta={meta} buildHref={buildHref} />}
         </>
       )}

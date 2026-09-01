@@ -1,0 +1,11 @@
+.form {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.inputWrapper {
+  flex: 1;
+  min-width: 220px;
+}

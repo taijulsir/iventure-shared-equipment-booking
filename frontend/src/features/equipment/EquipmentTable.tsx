@@ -1,10 +1,22 @@
+import Link from "next/link";
 import type { Equipment } from "@/types/equipment";
 import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { IconEquipment } from "@/components/ui/Icons";
 import styles from "./EquipmentTable.module.css";
 
-export function EquipmentTable({ equipment }: { equipment: Equipment[] }) {
+/** `showBookAction` is only true for Employees viewing the catalogue — the
+ * backend rejects an Admin/SuperAdmin reservation attempt anyway, so the
+ * button simply isn't rendered for them ("do not display actions the
+ * backend will reject"). */
+export function EquipmentTable({
+  equipment,
+  showBookAction = false,
+}: {
+  equipment: Equipment[];
+  showBookAction?: boolean;
+}) {
   if (equipment.length === 0) {
     return (
       <EmptyState
@@ -25,18 +37,19 @@ export function EquipmentTable({ equipment }: { equipment: Equipment[] }) {
               <th>Equipment Item</th>
               <th>Description</th>
               <th>Booking Policy</th>
+              {showBookAction && <th>Action</th>}
             </tr>
           </thead>
           <tbody>
             {equipment.map((item) => (
               <tr key={item.id}>
                 <td>
-                  <div className={styles.nameCell}>
+                  <Link href={`/equipment/${item.id}`} className={styles.nameCell}>
                     <div className={styles.itemIconBox}>
                       <IconEquipment size={18} />
                     </div>
                     <span className={styles.itemName}>{item.name}</span>
-                  </div>
+                  </Link>
                 </td>
                 <td className={styles.description}>{item.description || "—"}</td>
                 <td>
@@ -46,6 +59,13 @@ export function EquipmentTable({ equipment }: { equipment: Equipment[] }) {
                     <Badge tone="success">Instant booking</Badge>
                   )}
                 </td>
+                {showBookAction && (
+                  <td>
+                    <Button href={`/reservations/new?equipmentId=${item.id}`} variant="outline" size="sm">
+                      Book
+                    </Button>
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>
@@ -57,12 +77,12 @@ export function EquipmentTable({ equipment }: { equipment: Equipment[] }) {
         {equipment.map((item) => (
           <div key={item.id} className={styles.mobileCard}>
             <div className={styles.mobileCardHeader}>
-              <div className={styles.nameCell}>
+              <Link href={`/equipment/${item.id}`} className={styles.nameCell}>
                 <div className={styles.itemIconBox}>
                   <IconEquipment size={18} />
                 </div>
                 <span className={styles.itemName}>{item.name}</span>
-              </div>
+              </Link>
               {item.requiresApproval ? (
                 <Badge tone="warning">Approval</Badge>
               ) : (
@@ -70,6 +90,11 @@ export function EquipmentTable({ equipment }: { equipment: Equipment[] }) {
               )}
             </div>
             <p className={styles.description}>{item.description || "No description provided."}</p>
+            {showBookAction && (
+              <Button href={`/reservations/new?equipmentId=${item.id}`} variant="outline" size="sm" fullWidth>
+                Book
+              </Button>
+            )}
           </div>
         ))}
       </div>

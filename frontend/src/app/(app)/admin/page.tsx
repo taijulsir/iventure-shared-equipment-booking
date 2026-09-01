@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Badge } from "@/components/ui/Badge";
 import { PageHeader } from "@/components/ui/PageHeader";
 import {
@@ -22,7 +23,7 @@ export default function AdminPage() {
       />
 
       <div className={styles.grid}>
-        <div className={styles.adminCard}>
+        <Link href="/admin/equipment" className={styles.adminCardLink}>
           <div className={styles.cardHeader}>
             <div className={styles.iconBox}>
               <IconEquipment size={20} />
@@ -44,9 +45,9 @@ export default function AdminPage() {
               <span>Configure approval requirements for high-demand assets</span>
             </div>
           </div>
-        </div>
+        </Link>
 
-        <div className={styles.adminCard}>
+        <Link href="/reservations" className={styles.adminCardLink}>
           <div className={styles.cardHeader}>
             <div className={styles.iconBox}>
               <IconCalendar size={20} />
@@ -68,7 +69,7 @@ export default function AdminPage() {
               <span>Cross-employee booking timeline visibility</span>
             </div>
           </div>
-        </div>
+        </Link>
 
         <div className={styles.adminCard}>
           <div className={styles.cardHeader}>

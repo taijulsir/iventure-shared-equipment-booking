@@ -8,6 +8,7 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
@@ -16,8 +17,10 @@ import { RolesGuard } from '../auth/guards/roles.guard.js';
 import { Roles } from '../auth/decorators/roles.decorator.js';
 import { Role, type Reservation } from '../generated/prisma/client.js';
 import type { AuthenticatedRequest } from '../auth/types.js';
+import type { PaginatedResult } from '../common/pagination.js';
 import { ReservationService } from './reservation.service.js';
 import { CreateReservationDto } from './dto/create-reservation.dto.js';
+import { ListReservationsDto } from './dto/list-reservations.dto.js';
 
 /**
  * Every route requires authentication (JwtAuthGuard). RolesGuard is applied
@@ -35,6 +38,11 @@ import { CreateReservationDto } from './dto/create-reservation.dto.js';
  * — RBAC and ownership are kept separate, as documented. Approve/reject have
  * no ownership check at all (see reservation.service.ts) since they are
  * administrator-management actions, not ownership-bounded ones.
+ *
+ * GET / is paginated and optionally filtered by status/equipmentId (see
+ * ListReservationsDto) — an Employee's filters still only ever search
+ * within their own reservations, since the ownership scope is applied
+ * first and these filters narrow it further, never widen it.
  */
 @Controller('reservations')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -52,8 +60,11 @@ export class ReservationController {
   }
 
   @Get()
-  findAll(@Req() req: AuthenticatedRequest): Promise<Reservation[]> {
-    return this.reservationService.findAllForUser(req.user);
+  findAll(
+    @Req() req: AuthenticatedRequest,
+    @Query() query: ListReservationsDto,
+  ): Promise<PaginatedResult<Reservation>> {
+    return this.reservationService.findAllForUser(req.user, query);
   }
 
   @Get(':id')

@@ -15,14 +15,21 @@ export interface Equipment {
   updatedAt: string;
 }
 
-export interface PaginationMeta {
-  page: number;
-  limit: number;
-  total: number;
-  totalPages: number;
+/** POST /equipment body (Admin/SuperAdmin only). */
+export interface CreateEquipmentInput {
+  name: string;
+  description?: string;
+  requiresApproval?: boolean;
 }
 
-export interface PaginatedResult<T> {
-  data: T[];
-  meta: PaginationMeta;
+/** PATCH /equipment/:id body — every field optional, same as the backend's UpdateEquipmentDto. */
+export interface UpdateEquipmentInput {
+  name?: string;
+  description?: string;
+  requiresApproval?: boolean;
 }
+
+// Moved to a shared location (types/pagination.ts) now that Reservations
+// also returns a paginated list. Re-exported here so existing imports in
+// this codebase keep working unchanged.
+export type { PaginationMeta, PaginatedResult } from "./pagination";

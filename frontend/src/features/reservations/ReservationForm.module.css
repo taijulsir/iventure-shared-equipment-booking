@@ -1,0 +1,11 @@
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.policyNote {
+  font-size: 0.8125rem;
+  color: var(--foreground-muted);
+  margin-top: -6px;
+}

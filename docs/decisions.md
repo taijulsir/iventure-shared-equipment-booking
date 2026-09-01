@@ -710,4 +710,32 @@ over unnecessary complexity.
 
 Any future architectural change should be justified by a concrete requirement or discovered technical constraint.
 
+---
+
+## 16. List Endpoint Pagination and Filtering Consistency
+
+### Context
+
+Equipment listing (`GET /equipment`) already supported `search`/`page`/`limit`, returning `{ data, meta }`. Reservation listing (`GET /reservations`) predated that convention and returned a bare array with no filtering or pagination, which the frontend needed once it moved from static/placeholder screens to a real, filterable Admin reservations view.
+
+### Decision
+
+`GET /reservations` now accepts `status`, `equipmentId`, `page`, and `limit` query parameters (validated via a DTO, same as Equipment's `ListEquipmentDto`) and returns the same `{ data, meta }` envelope as `GET /equipment`, rather than inventing a second list-response shape.
+
+`status`/`equipmentId` narrow the result set on top of the existing ownership scope (an Employee's own reservations, or every reservation for an Administrator/SuperAdmin) — they can never widen it. An Employee filtering by another user's data still only ever searches within their own reservations.
+
+`GET /users` (SUPERADMIN-only) was deliberately left unpaginated: it is an internal administrative listing expected to stay small, not a public catalogue, and pagination/filtering was not required to make the existing User Management UI functional.
+
+### Consequence
+
+This is a breaking change to `GET /reservations`'s response shape (bare array -> `{ data, meta }`). There was no external consumer other than this project's own frontend and Postman collection, both updated in the same change; there is no versioned public API contract to preserve here.
+
+### Rationale
+
+One consistent pagination envelope across every list endpoint is easier for the frontend (and any future API consumer) to work with than one endpoint returning a bare array and another returning an envelope. `PaginationMeta`/`PaginatedResult<T>` were moved to a shared module (`backend/src/common/pagination.ts`) once a second module needed them, rather than duplicated per module or kept in Equipment's own `types.ts` for Reservations to reach into.
+
+## 17. SuperAdmin Reservation Visibility
+
+While integrating the Admin reservations view, `ReservationService` was found to still gate "view all reservations" and "view any reservation by id" on `Role.ADMIN` alone, from before the SuperAdmin role existed. A SuperAdmin session hitting `GET /reservations` saw only their own (typically empty) list instead of every reservation, unlike every other Administrator-level capability, which already followed the SUPERADMIN -> ADMIN -> EMPLOYEE hierarchy (see section 7, "SuperAdmin Role and User Management"). Both checks now also include `Role.SUPERADMIN`, consistent with the rest of the hierarchy. This does not change any Employee-facing behavior and does not touch reservation creation/cancellation, which remain Employee-only exactly as before.
+
 ````

@@ -130,7 +130,7 @@ newman run ../postman/collections/iventure-api.postman_collection.json \
   -e ../postman/environments/iventure-local.postman_environment.json
 ```
 
-Expected output: **82 requests, 124 assertions, 0 failures** (assuming the
+Expected output: **86 requests, 132 assertions, 0 failures** (assuming the
 Admin and SuperAdmin accounts have been seeded — see steps 3 and 4). The run is deterministic and
 safe to repeat: every run generates its own timestamp-based `runId` and
 registers fresh, uniquely-emailed test users, so back-to-back runs never
@@ -268,6 +268,11 @@ Covered explicitly:
   allowed; a `CANCELLED` or `REJECTED` reservation's slot can be re-booked;
   an approved (`CONFIRMED`) reservation still blocks new overlaps — proving
   approval doesn't weaken the database-level guarantee
+- `GET /reservations` is paginated and filterable by `status`/`equipmentId`,
+  returning the same `{ data, meta }` envelope as `GET /equipment` (see
+  `docs/decisions.md`, "List Endpoint Pagination and Filtering
+  Consistency") — an Employee's filters still only ever narrow their own
+  reservations, never widen them to another user's
 
 ## Known limitations
 
@@ -305,7 +310,7 @@ Covered explicitly:
 
 ## Regenerating the collection
 
-The collection file is large (68 requests) and was generated from a small
+The collection file is large (86 requests as of this writing) and was generated from a small
 Node script for consistency rather than hand-edited in the Postman JSON
 format. If you need to make structural changes, editing the exported JSON
 directly (via the Postman app, then re-exporting) is the simplest path for

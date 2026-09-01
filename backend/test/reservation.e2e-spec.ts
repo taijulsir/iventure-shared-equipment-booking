@@ -25,6 +25,7 @@ describe('Reservation (e2e)', () => {
   let agentEmployeeA: ReturnType<typeof request.agent>;
   let agentEmployeeB: ReturnType<typeof request.agent>;
   let agentAdmin: ReturnType<typeof request.agent>;
+  let agentSuperAdmin: ReturnType<typeof request.agent>;
 
   let equipmentNoApprovalId: string;
   let equipmentRequiresApprovalId: string;
@@ -84,6 +85,22 @@ describe('Reservation (e2e)', () => {
 
     agentAdmin = request.agent(app.getHttpServer());
     await agentAdmin.post('/auth/login').send({ email: adminEmail, password: adminPassword }).expect(200);
+
+    const superAdminEmail = uniqueEmail('superadmin');
+    const superAdminPassword = 'superadmin-password';
+    await prisma.user.create({
+      data: {
+        name: 'Reservation Test SuperAdmin',
+        email: superAdminEmail,
+        passwordHash: await hashingService.hash(superAdminPassword),
+        role: Role.SUPERADMIN,
+      },
+    });
+    agentSuperAdmin = request.agent(app.getHttpServer());
+    await agentSuperAdmin
+      .post('/auth/login')
+      .send({ email: superAdminEmail, password: superAdminPassword })
+      .expect(200);
 
     const noApprovalResponse = await agentAdmin
       .post('/equipment')
@@ -284,16 +301,66 @@ describe('Reservation (e2e)', () => {
         where: { email: uniqueEmail('employee-a') },
       });
 
-      expect(response.body.length).toBeGreaterThan(0);
-      for (const reservation of response.body) {
+      expect(response.body.data.length).toBeGreaterThan(0);
+      for (const reservation of response.body.data) {
         expect(reservation.userId).toBe(employeeA.id);
       }
+      expect(response.body.meta).toMatchObject({
+        page: 1,
+        limit: 20,
+        total: expect.any(Number),
+        totalPages: expect.any(Number),
+      });
     });
 
     it("an Administrator's list includes reservations from multiple employees", async () => {
       const response = await agentAdmin.get('/reservations').expect(200);
-      const userIds = new Set(response.body.map((r: { userId: string }) => r.userId));
+      const userIds = new Set(response.body.data.map((r: { userId: string }) => r.userId));
       expect(userIds.size).toBeGreaterThanOrEqual(2);
+    });
+
+    it("a SuperAdmin's list also includes reservations from multiple employees", async () => {
+      const response = await agentSuperAdmin.get('/reservations').expect(200);
+      const userIds = new Set(response.body.data.map((r: { userId: string }) => r.userId));
+      expect(userIds.size).toBeGreaterThanOrEqual(2);
+    });
+
+    it('filters the list by status', async () => {
+      const created = await agentEmployeeA
+        .post('/reservations')
+        .send({
+          equipmentId: equipmentRequiresApprovalId,
+          startTime: '2027-03-13T10:00:00.000Z',
+          endTime: '2027-03-13T12:00:00.000Z',
+        })
+        .expect(201);
+      expect(created.body.status).toBe('PENDING');
+
+      const response = await agentEmployeeA.get('/reservations?status=PENDING').expect(200);
+      expect(response.body.data.length).toBeGreaterThan(0);
+      for (const reservation of response.body.data) {
+        expect(reservation.status).toBe('PENDING');
+      }
+    });
+
+    it('filters the list by equipmentId', async () => {
+      const response = await agentAdmin
+        .get(`/reservations?equipmentId=${equipmentNoApprovalId}`)
+        .expect(200);
+      expect(response.body.data.length).toBeGreaterThan(0);
+      for (const reservation of response.body.data) {
+        expect(reservation.equipmentId).toBe(equipmentNoApprovalId);
+      }
+    });
+
+    it('paginates the list', async () => {
+      const response = await agentAdmin.get('/reservations?page=1&limit=1').expect(200);
+      expect(response.body.data.length).toBe(1);
+      expect(response.body.meta).toMatchObject({ page: 1, limit: 1 });
+    });
+
+    it('rejects an invalid status filter with 400', async () => {
+      await agentEmployeeA.get('/reservations?status=NOT_A_STATUS').expect(400);
     });
 
     it('allows an employee to fetch their own reservation by id', async () => {
@@ -334,6 +401,20 @@ describe('Reservation (e2e)', () => {
         .expect(201);
 
       const response = await agentAdmin.get(`/reservations/${created.body.id}`).expect(200);
+      expect(response.body.id).toBe(created.body.id);
+    });
+
+    it('allows a SuperAdmin to fetch any reservation by id too', async () => {
+      const created = await agentEmployeeA
+        .post('/reservations')
+        .send({
+          equipmentId: equipmentNoApprovalId,
+          startTime: '2027-02-17T10:00:00.000Z',
+          endTime: '2027-02-17T12:00:00.000Z',
+        })
+        .expect(201);
+
+      const response = await agentSuperAdmin.get(`/reservations/${created.body.id}`).expect(200);
       expect(response.body.id).toBe(created.body.id);
     });
 

@@ -21,6 +21,28 @@
   box-shadow: var(--shadow-xs);
 }
 
+/* Same as .adminCard, plus the interactive treatment the Dashboard's
+ * navCard uses — for the two cards here that link to a real management
+ * page. */
+.adminCardLink {
+  background-color: var(--surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  box-shadow: var(--shadow-xs);
+  text-decoration: none;
+  transition: all var(--transition-fast);
+}
+
+.adminCardLink:hover {
+  border-color: var(--color-border-hover);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
 .cardHeader {
   display: flex;
   align-items: center;

@@ -14,6 +14,13 @@ import {
 } from '../generated/prisma/client.js';
 import type { JwtPayload } from '../auth/types.js';
 import type { CreateReservationDto } from './dto/create-reservation.dto.js';
+import type { ListReservationsDto } from './dto/list-reservations.dto.js';
+import {
+  buildPaginationMeta,
+  DEFAULT_LIMIT,
+  DEFAULT_PAGE,
+  type PaginatedResult,
+} from '../common/pagination.js';
 
 // Prisma's known-request-error code used below (equipment lookups reuse the
 // same pattern already established in EquipmentService):
@@ -36,12 +43,20 @@ const ACTIVE_STATUSES: ReservationStatus[] = [
 ];
 
 // Roles exempt from reservation ownership checks (docs/decisions.md,
-// "Role-Based Access vs Resource Ownership"): Administrators may view any
-// reservation as part of their explicitly documented "view all
+// "Role-Based Access vs Resource Ownership"): Administrators (and
+// SuperAdmins, per the SUPERADMIN -> ADMIN -> EMPLOYEE role hierarchy) may
+// view any reservation as part of their explicitly documented "view all
 // reservations" permission. There is no documented Administrator
 // cancellation capability, so this exemption is used for reads only —
 // see `cancel()` below.
-const VIEW_OWNERSHIP_EXEMPT_ROLES: Role[] = [Role.ADMIN];
+const VIEW_OWNERSHIP_EXEMPT_ROLES: Role[] = [Role.ADMIN, Role.SUPERADMIN];
+
+// Roles that see every reservation (not just their own) in the list view —
+// kept as its own constant, distinct from VIEW_OWNERSHIP_EXEMPT_ROLES, since
+// the two guard different code paths (list-scoping here vs. per-record
+// ownership in findOne) even though the role set happens to be identical
+// today.
+const LIST_ALL_ROLES: Role[] = [Role.ADMIN, Role.SUPERADMIN];
 
 @Injectable()
 export class ReservationService {
@@ -139,18 +154,44 @@ export class ReservationService {
   }
 
   /**
-   * Employees see only their own reservations; Administrators see all of
-   * them (docs/requirements.md: "Administrators can... view all
+   * Employees see only their own reservations; Administrators/SuperAdmins
+   * see all of them (docs/requirements.md: "Administrators can... view all
    * reservations"). This is ownership enforced by scoping the query itself
-   * — there is no client-supplied filter that could widen it, so there is
-   * nothing for an Employee to manipulate to see another user's data.
+   * — `status`/`equipmentId` are ANDed on top of that base scope, so there
+   * is no client-supplied filter that could widen it beyond what the
+   * caller's role already permits.
+   *
+   * Paginated the same way as EquipmentService.findAll, for a consistent
+   * `{ data, meta }` shape across every list endpoint in the API.
    */
-  async findAllForUser(user: JwtPayload): Promise<Reservation[]> {
-    const where = user.role === Role.ADMIN ? {} : { userId: user.sub };
-    return this.prisma.reservation.findMany({
-      where,
-      orderBy: { startTime: 'desc' },
-    });
+  async findAllForUser(
+    user: JwtPayload,
+    query: ListReservationsDto,
+  ): Promise<PaginatedResult<Reservation>> {
+    const page = query.page ?? DEFAULT_PAGE;
+    const limit = query.limit ?? DEFAULT_LIMIT;
+
+    const where: Prisma.ReservationWhereInput = LIST_ALL_ROLES.includes(user.role)
+      ? {}
+      : { userId: user.sub };
+    if (query.status) {
+      where.status = query.status;
+    }
+    if (query.equipmentId) {
+      where.equipmentId = query.equipmentId;
+    }
+
+    const [data, total] = await Promise.all([
+      this.prisma.reservation.findMany({
+        where,
+        skip: (page - 1) * limit,
+        take: limit,
+        orderBy: { startTime: 'desc' },
+      }),
+      this.prisma.reservation.count({ where }),
+    ]);
+
+    return { data, meta: buildPaginationMeta(page, limit, total) };
   }
 
   /**
