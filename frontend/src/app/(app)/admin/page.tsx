@@ -23,7 +23,7 @@ export default function AdminPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         <Link
-          href="/admin/equipment"
+          href="/equipment"
           className="bg-surface border border-border rounded-[var(--radius-lg)] p-6 flex flex-col gap-4 shadow-xs no-underline transition-all duration-150 hover:border-border-hover hover:shadow-md hover:-translate-y-0.5 group"
         >
           <div className="flex items-center gap-3">

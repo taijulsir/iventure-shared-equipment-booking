@@ -5,11 +5,12 @@ import type { EquipmentWithAvailability } from "@/types/equipment";
 import type { PaginationMeta } from "@/types/pagination";
 import { Alert } from "@/components/ui/Alert";
 import { Badge } from "@/components/ui/Badge";
-import { Button } from "@/components/ui/Button";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Pagination } from "@/components/ui/Pagination";
+import { TableContainer } from "@/components/ui/TableContainer";
 import { EquipmentTable } from "@/features/equipment/EquipmentTable";
 import { EquipmentSearchBar } from "@/features/equipment/EquipmentSearchBar";
+import { AddEquipmentButton } from "@/features/equipment/AddEquipmentButton";
 import { utcIsoToDatetimeLocalValue } from "@/lib/format";
 
 const PAGE_LIMIT = 20;
@@ -65,43 +66,42 @@ export default async function EquipmentPage({
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <PageHeader
-        title="Equipment Catalogue"
-        subtitle="Browse shared enterprise equipment, review specifications, and check booking policies."
-        badge={
-          meta && (
-            <Badge tone="neutral" showDot={false}>
-              {meta.total} {meta.total === 1 ? "Item" : "Items"}
-            </Badge>
-          )
-        }
-        action={
-          isAdmin && (
-            <Button href="/admin/equipment" variant="secondary" size="md">
-              Manage Equipment
-            </Button>
-          )
-        }
-      />
+    <div className="flex flex-col gap-4 flex-1 min-h-0">
+      <div className="shrink-0 flex flex-col gap-4">
+        <PageHeader
+          title="Equipment Catalogue"
+          subtitle="Browse shared enterprise equipment, review specifications, and check booking policies."
+          badge={
+            meta && (
+              <Badge tone="neutral" showDot={false}>
+                {meta.total} {meta.total === 1 ? "Item" : "Items"}
+              </Badge>
+            )
+          }
+          action={isAdmin ? <AddEquipmentButton /> : null}
+        />
 
-      <EquipmentSearchBar
-        initialSearch={search ?? ""}
-        initialStartTime={hasAvailabilityWindow ? utcIsoToDatetimeLocalValue(startTime!) : ""}
-        initialEndTime={hasAvailabilityWindow ? utcIsoToDatetimeLocalValue(endTime!) : ""}
-      />
+        <EquipmentSearchBar
+          initialSearch={search ?? ""}
+          initialStartTime={hasAvailabilityWindow ? utcIsoToDatetimeLocalValue(startTime!) : ""}
+          initialEndTime={hasAvailabilityWindow ? utcIsoToDatetimeLocalValue(endTime!) : ""}
+        />
+      </div>
 
       {errorMessage ? (
         <Alert variant="error" title="Failed to load equipment">
           {errorMessage}
         </Alert>
       ) : (
-        <>
-          <div className="bg-surface border border-border rounded-[var(--radius-lg)] overflow-hidden shadow-xs">
-            <EquipmentTable equipment={equipment ?? []} showBookAction={isEmployee} />
-          </div>
-          {meta && <Pagination meta={meta} buildHref={buildHref} />}
-        </>
+        <TableContainer
+          pagination={meta && meta.totalPages > 1 ? <Pagination meta={meta} buildHref={buildHref} /> : null}
+        >
+          <EquipmentTable
+            equipment={equipment ?? []}
+            showBookAction={isEmployee}
+            isAdmin={isAdmin}
+          />
+        </TableContainer>
       )}
     </div>
   );

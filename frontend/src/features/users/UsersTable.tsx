@@ -7,6 +7,7 @@ import { updateUserRole } from "@/lib/api/users";
 import { resolveApiErrorMessage } from "@/lib/api/handleApiError";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { ConfirmationModal } from "@/components/ui/ConfirmationModal";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { IconUser, IconAlertCircle } from "@/components/ui/Icons";
 import { formatUtc } from "@/lib/format";
@@ -22,7 +23,10 @@ function actionLabel(target: AssignableRole): string {
   return target === "ADMIN" ? "Promote to Admin" : "Demote to Employee";
 }
 
-type RowState = { mode: "idle" } | { mode: "confirming" } | { mode: "submitting" } | { mode: "error"; message: string };
+interface PendingAction {
+  user: SafeUser;
+  targetRole: AssignableRole;
+}
 
 export function UsersTable({
   users: initialUsers,
@@ -33,21 +37,31 @@ export function UsersTable({
 }) {
   const router = useRouter();
   const [users, setUsers] = useState(initialUsers);
-  const [rowStates, setRowStates] = useState<Record<string, RowState>>({});
+  const [pendingAction, setPendingAction] = useState<PendingAction | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [rowErrors, setRowErrors] = useState<Record<string, string>>({});
 
-  const rowState = (id: string): RowState => rowStates[id] ?? { mode: "idle" };
-  const setRowState = (id: string, state: RowState) =>
-    setRowStates((prev) => ({ ...prev, [id]: state }));
+  async function handleConfirmRoleChange() {
+    if (!pendingAction) return;
+    const { user, targetRole } = pendingAction;
 
-  async function confirmRoleChange(user: SafeUser, target: AssignableRole) {
-    setRowState(user.id, { mode: "submitting" });
+    setIsSubmitting(true);
+    setRowErrors((prev) => {
+      const next = { ...prev };
+      delete next[user.id];
+      return next;
+    });
+
     try {
-      const updated = await updateUserRole(user.id, target);
+      const updated = await updateUserRole(user.id, targetRole);
       setUsers((prev) => prev.map((row) => (row.id === updated.id ? updated : row)));
-      setRowState(user.id, { mode: "idle" });
+      setPendingAction(null);
     } catch (error) {
       const message = resolveApiErrorMessage(error, () => router.push("/login"));
-      setRowState(user.id, { mode: "error", message });
+      setRowErrors((prev) => ({ ...prev, [user.id]: message }));
+      setPendingAction(null);
+    } finally {
+      setIsSubmitting(false);
     }
   }
 
@@ -64,23 +78,23 @@ export function UsersTable({
   return (
     <>
       {/* Desktop Table */}
-      <div className="hidden sm:block w-full overflow-x-auto">
+      <div className="hidden sm:block w-full">
         <table className="w-full border-collapse text-sm text-left">
           <thead>
             <tr>
-              <th className="text-xs font-semibold uppercase tracking-[0.05em] text-foreground-muted px-4 py-3 bg-surface-muted border-b border-border rounded-tl-[var(--radius-md)] whitespace-nowrap">
+              <th className="sticky top-0 z-20 text-xs font-semibold uppercase tracking-[0.05em] text-foreground-muted px-4 py-3 bg-surface-muted border-b border-border whitespace-nowrap shadow-[0_1px_0_var(--border)]">
                 Name
               </th>
-              <th className="text-xs font-semibold uppercase tracking-[0.05em] text-foreground-muted px-4 py-3 bg-surface-muted border-b border-border whitespace-nowrap">
+              <th className="sticky top-0 z-20 text-xs font-semibold uppercase tracking-[0.05em] text-foreground-muted px-4 py-3 bg-surface-muted border-b border-border whitespace-nowrap shadow-[0_1px_0_var(--border)]">
                 Email
               </th>
-              <th className="text-xs font-semibold uppercase tracking-[0.05em] text-foreground-muted px-4 py-3 bg-surface-muted border-b border-border whitespace-nowrap">
+              <th className="sticky top-0 z-20 text-xs font-semibold uppercase tracking-[0.05em] text-foreground-muted px-4 py-3 bg-surface-muted border-b border-border whitespace-nowrap shadow-[0_1px_0_var(--border)]">
                 Role
               </th>
-              <th className="text-xs font-semibold uppercase tracking-[0.05em] text-foreground-muted px-4 py-3 bg-surface-muted border-b border-border whitespace-nowrap">
+              <th className="sticky top-0 z-20 text-xs font-semibold uppercase tracking-[0.05em] text-foreground-muted px-4 py-3 bg-surface-muted border-b border-border whitespace-nowrap shadow-[0_1px_0_var(--border)]">
                 Created
               </th>
-              <th className="text-xs font-semibold uppercase tracking-[0.05em] text-foreground-muted px-4 py-3 bg-surface-muted border-b border-border rounded-tr-[var(--radius-md)] whitespace-nowrap">
+              <th className="sticky top-0 z-20 text-xs font-semibold uppercase tracking-[0.05em] text-foreground-muted px-4 py-3 bg-surface-muted border-b border-border whitespace-nowrap shadow-[0_1px_0_var(--border)]">
                 Action
               </th>
             </tr>
@@ -91,10 +105,8 @@ export function UsersTable({
                 key={user.id}
                 user={user}
                 isSelf={user.id === currentUserId}
-                state={rowState(user.id)}
-                onRequestChange={() => setRowState(user.id, { mode: "confirming" })}
-                onCancel={() => setRowState(user.id, { mode: "idle" })}
-                onConfirm={(target) => confirmRoleChange(user, target)}
+                errorMessage={rowErrors[user.id]}
+                onRequestChange={(targetRole) => setPendingAction({ user, targetRole })}
               />
             ))}
           </tbody>
@@ -102,19 +114,45 @@ export function UsersTable({
       </div>
 
       {/* Mobile Card List */}
-      <div className="sm:hidden flex flex-col gap-4">
+      <div className="sm:hidden flex flex-col gap-4 p-4">
         {users.map((user) => (
           <UserCard
             key={user.id}
             user={user}
             isSelf={user.id === currentUserId}
-            state={rowState(user.id)}
-            onRequestChange={() => setRowState(user.id, { mode: "confirming" })}
-            onCancel={() => setRowState(user.id, { mode: "idle" })}
-            onConfirm={(target) => confirmRoleChange(user, target)}
+            errorMessage={rowErrors[user.id]}
+            onRequestChange={(targetRole) => setPendingAction({ user, targetRole })}
           />
         ))}
       </div>
+
+      {/* Reusable Confirmation Modal */}
+      {pendingAction && (
+        <ConfirmationModal
+          isOpen={Boolean(pendingAction)}
+          onClose={() => setPendingAction(null)}
+          onConfirm={handleConfirmRoleChange}
+          isLoading={isSubmitting}
+          confirmVariant={pendingAction.targetRole === "ADMIN" ? "primary" : "danger"}
+          confirmLabel={actionLabel(pendingAction.targetRole)}
+          title={
+            pendingAction.targetRole === "ADMIN"
+              ? `Promote ${pendingAction.user.name} to Administrator?`
+              : `Demote ${pendingAction.user.name} to Employee?`
+          }
+          description={
+            pendingAction.targetRole === "ADMIN" ? (
+              <span>
+                Are you sure you want to promote <strong>{pendingAction.user.name}</strong> ({pendingAction.user.email}) to an <strong>Administrator</strong>? Administrators can manage equipment catalogue items and review reservation approval workflows.
+              </span>
+            ) : (
+              <span>
+                Are you sure you want to demote <strong>{pendingAction.user.name}</strong> ({pendingAction.user.email}) to an <strong>Employee</strong>? This will revoke administrator privileges for equipment management and approval actions.
+              </span>
+            )
+          }
+        />
+      )}
     </>
   );
 }
@@ -122,13 +160,11 @@ export function UsersTable({
 interface RowProps {
   user: SafeUser;
   isSelf: boolean;
-  state: RowState;
-  onRequestChange: () => void;
-  onCancel: () => void;
-  onConfirm: (target: AssignableRole) => void;
+  errorMessage?: string;
+  onRequestChange: (target: AssignableRole) => void;
 }
 
-function RoleAction({ user, isSelf, state, onRequestChange, onCancel, onConfirm }: RowProps) {
+function RoleActionButton({ user, isSelf, onRequestChange }: RowProps) {
   const target = nextRoleFor(user.role);
 
   if (isSelf || !target) {
@@ -139,44 +175,19 @@ function RoleAction({ user, isSelf, state, onRequestChange, onCancel, onConfirm 
     );
   }
 
-  if (state.mode === "confirming") {
-    return (
-      <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-[0.8125rem] font-medium text-foreground-secondary">{actionLabel(target)}?</span>
-        <Button size="sm" variant="primary" onClick={() => onConfirm(target)}>
-          Confirm
-        </Button>
-        <Button size="sm" variant="ghost" onClick={onCancel}>
-          Cancel
-        </Button>
-      </div>
-    );
-  }
-
   return (
     <Button
       size="sm"
-      variant={target === "ADMIN" ? "primary" : "outline"}
-      isLoading={state.mode === "submitting"}
-      onClick={onRequestChange}
+      variant={target === "ADMIN" ? "primary" : "secondary"}
+      onClick={() => onRequestChange(target)}
     >
       {actionLabel(target)}
     </Button>
   );
 }
 
-function RowError({ state }: { state: RowState }) {
-  if (state.mode !== "error") return null;
-  return (
-    <div className="flex items-center gap-1.5 mt-2 text-danger text-[0.8125rem]">
-      <IconAlertCircle size={13} />
-      <span>{state.message}</span>
-    </div>
-  );
-}
-
 function UserRow(props: RowProps) {
-  const { user } = props;
+  const { user, errorMessage } = props;
   return (
     <tr className="group hover:bg-surface-subtle transition-colors duration-150">
       <td className="p-4 border-b border-border text-foreground align-middle group-last:border-b-0">
@@ -187,7 +198,9 @@ function UserRow(props: RowProps) {
           <span className="font-semibold text-foreground">{user.name}</span>
         </div>
       </td>
-      <td className="p-4 border-b border-border text-foreground-secondary align-middle group-last:border-b-0">{user.email}</td>
+      <td className="p-4 border-b border-border text-foreground-secondary align-middle group-last:border-b-0">
+        {user.email}
+      </td>
       <td className="p-4 border-b border-border text-foreground align-middle group-last:border-b-0">
         <Badge tone={roleTone(user.role)} showDot={false}>
           {user.role}
@@ -197,15 +210,20 @@ function UserRow(props: RowProps) {
         {formatUtc(user.createdAt)}
       </td>
       <td className="p-4 border-b border-border text-foreground align-middle group-last:border-b-0">
-        <RoleAction {...props} />
-        <RowError state={props.state} />
+        <RoleActionButton {...props} />
+        {errorMessage && (
+          <div className="flex items-center gap-1.5 mt-2 text-danger text-[0.8125rem]">
+            <IconAlertCircle size={13} />
+            <span>{errorMessage}</span>
+          </div>
+        )}
       </td>
     </tr>
   );
 }
 
 function UserCard(props: RowProps) {
-  const { user } = props;
+  const { user, errorMessage } = props;
   return (
     <div className="bg-surface border border-border rounded-[var(--radius-md)] p-4 flex flex-col gap-3">
       <div className="flex items-start justify-between gap-2">
@@ -221,10 +239,17 @@ function UserCard(props: RowProps) {
       </div>
       <p className="text-foreground-secondary text-sm">{user.email}</p>
       <div className="flex items-center justify-between gap-2 flex-wrap pt-2 border-t border-border">
-        <span className="text-[0.8125rem] text-foreground-secondary tabular-nums">Joined {formatUtc(user.createdAt)}</span>
-        <RoleAction {...props} />
+        <span className="text-[0.8125rem] text-foreground-secondary tabular-nums">
+          Joined {formatUtc(user.createdAt)}
+        </span>
+        <RoleActionButton {...props} />
       </div>
-      <RowError state={props.state} />
+      {errorMessage && (
+        <div className="flex items-center gap-1.5 text-danger text-[0.8125rem]">
+          <IconAlertCircle size={13} />
+          <span>{errorMessage}</span>
+        </div>
+      )}
     </div>
   );
 }
