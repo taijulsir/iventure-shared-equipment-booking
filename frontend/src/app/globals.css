@@ -1,0 +1,423 @@
+@import "tailwindcss";
+
+@variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+
+/*
+ * `inline` is required here, not just stylistic: these keys are aliases to
+ * plain CSS custom properties (defined below in :root / [data-theme=...])
+ * that get REDEFINED per theme — a non-inline @theme would let Tailwind
+ * resolve/inline the value at build time instead of deferring to the
+ * runtime cascade, breaking exactly the light/dark swap this file relies
+ * on. This is the same pattern Tailwind v4 documents for CSS-variable-based
+ * dark mode. Every key below aliases a DIFFERENTLY-NAMED runtime variable
+ * (e.g. --color-primary -> --primary) — aliasing a variable to itself
+ * (--color-primary: var(--color-primary)) is a circular reference that
+ * only "worked" before by accident of source order, not by construction.
+ */
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-elevated: var(--surface-elevated);
+  --color-surface-subtle: var(--surface-subtle);
+  --color-surface-muted: var(--surface-muted);
+  --color-surface-card: var(--surface-card);
+
+  --color-foreground: var(--foreground);
+  --color-foreground-secondary: var(--foreground-secondary);
+  --color-foreground-muted: var(--foreground-muted);
+
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-active: var(--primary-active);
+  --color-primary-subtle: var(--primary-subtle);
+  --color-primary-contrast: var(--primary-contrast);
+  --color-primary-focus: var(--primary-focus);
+
+  --color-border: var(--border);
+  --color-border-subtle: var(--border-subtle);
+  --color-border-hover: var(--border-hover);
+  --color-border-accent: var(--border-accent);
+
+  --color-success: var(--success);
+  --color-success-bg: var(--success-bg);
+  --color-success-border: var(--success-border);
+  --color-success-text: var(--success-text);
+
+  --color-warning: var(--warning);
+  --color-warning-bg: var(--warning-bg);
+  --color-warning-border: var(--warning-border);
+  --color-warning-text: var(--warning-text);
+
+  --color-danger: var(--danger);
+  --color-danger-bg: var(--danger-bg);
+  --color-danger-border: var(--danger-border);
+  --color-danger-text: var(--danger-text);
+
+  --color-info: var(--info);
+  --color-info-bg: var(--info-bg);
+  --color-info-border: var(--info-border);
+  --color-info-text: var(--info-text);
+
+  --color-neutral: var(--neutral);
+  --color-neutral-bg: var(--neutral-bg);
+  --color-neutral-border: var(--neutral-border);
+  --color-neutral-text: var(--neutral-text);
+
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+  --radius-full: 9999px;
+
+  --shadow-xs: var(--shadow-raw-xs);
+  --shadow-sm: var(--shadow-raw-sm);
+  --shadow-md: var(--shadow-raw-md);
+  --shadow-lg: var(--shadow-raw-lg);
+  --shadow-emerald: var(--shadow-raw-emerald);
+
+  --font-sans: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: var(--font-geist-mono), monospace;
+}
+
+:root {
+  /* Light Theme Color Palette - Green / Emerald SaaS */
+  --background: #F6FAF8;
+  --surface: #FFFFFF;
+  --surface-elevated: #FFFFFF;
+  --surface-subtle: #ECFDF5;
+  --surface-muted: #F3F4F6;
+  --surface-card: #FFFFFF;
+
+  /* Typography & Foreground Tokens */
+  --foreground: #111827;
+  --foreground-secondary: #4B5563;
+  --foreground-muted: #6B7280;
+
+  /* Primary Emerald Accent Tokens — raw runtime values; aliased for
+     Tailwind under --color-primary* by the @theme inline block above. */
+  --primary: #059669;
+  /* Emerald 600 */
+  --primary-hover: #047857;
+  /* Emerald 700 */
+  --primary-active: #065F46;
+  /* Emerald 800 */
+  --primary-subtle: #D1FAE5;
+  /* Emerald 100 */
+  --primary-contrast: #FFFFFF;
+  --primary-focus: rgba(5, 150, 105, 0.25);
+
+  /* Border Tokens */
+  --border: #E5E7EB;
+  --border-subtle: #F3F4F6;
+  --border-hover: #D1D5DB;
+  --border-accent: #A7F3D0;
+
+  /* Semantic State Tokens */
+  --success: #059669;
+  --success-bg: #ECFDF5;
+  --success-border: #A7F3D0;
+  --success-text: #065F46;
+
+  --warning: #D97706;
+  --warning-bg: #FFFBEB;
+  --warning-border: #FDE68A;
+  --warning-text: #92400E;
+
+  --danger: #DC2626;
+  --danger-bg: #FEF2F2;
+  --danger-border: #FECACA;
+  --danger-text: #991B1B;
+
+  --info: #2563EB;
+  --info-bg: #EFF6FF;
+  --info-border: #BFDBFE;
+  --info-text: #1E40AF;
+
+  --neutral: #6B7280;
+  --neutral-bg: #F3F4F6;
+  --neutral-border: #E5E7EB;
+  --neutral-text: #374151;
+
+  /* Layout, Spacing & Border Radius */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+  --radius-full: 9999px;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+
+  /* Modern Refined Shadows — raw runtime values; aliased under --shadow-*
+     by the @theme inline block above. */
+  --shadow-raw-xs: 0 1px 2px rgba(17, 24, 39, 0.04);
+  --shadow-raw-sm: 0 1px 3px rgba(17, 24, 39, 0.06), 0 1px 2px rgba(17, 24, 39, 0.04);
+  --shadow-raw-md: 0 4px 12px -2px rgba(17, 24, 39, 0.08), 0 2px 6px -2px rgba(17, 24, 39, 0.04);
+  --shadow-raw-lg: 0 12px 24px -4px rgba(17, 24, 39, 0.08), 0 4px 8px -2px rgba(17, 24, 39, 0.04);
+  --shadow-raw-emerald: 0 4px 14px 0 rgba(5, 150, 105, 0.25);
+
+  /* Transitions */
+  --transition-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-smooth: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Sidebar dimensions */
+  --sidebar-width: 260px;
+  --sidebar-collapsed-width: 72px;
+  --header-height: 64px;
+}
+
+/* Explicit Dark Theme and System Preference Fallback */
+[data-theme="dark"],
+:root:not([data-theme="light"]) {
+  @media (prefers-color-scheme: dark) {
+    --background: #0B0F0D;
+    --surface: #111714;
+    --surface-elevated: #17201B;
+    --surface-subtle: #1C2822;
+    --surface-muted: #1E2621;
+    --surface-card: #141B17;
+
+    --foreground: #F3F4F6;
+    --foreground-secondary: #D1D5DB;
+    --foreground-muted: #9CA3AF;
+
+    --primary: #10B981;
+    /* Emerald 500 */
+    --primary-hover: #34D399;
+    /* Emerald 400 */
+    --primary-active: #059669;
+    /* Emerald 600 */
+    --primary-subtle: rgba(16, 185, 129, 0.14);
+    --primary-contrast: #0B0F0D;
+    --primary-focus: rgba(16, 185, 129, 0.35);
+
+    --border: #26352E;
+    --border-subtle: #19231E;
+    --border-hover: #364940;
+    --border-accent: rgba(16, 185, 129, 0.3);
+
+    --success: #34D399;
+    --success-bg: rgba(16, 185, 129, 0.12);
+    --success-border: rgba(16, 185, 129, 0.28);
+    --success-text: #A7F3D0;
+
+    --warning: #FBBF24;
+    --warning-bg: rgba(245, 158, 11, 0.12);
+    --warning-border: rgba(245, 158, 11, 0.28);
+    --warning-text: #FDE68A;
+
+    --danger: #F87171;
+    --danger-bg: rgba(239, 68, 68, 0.12);
+    --danger-border: rgba(239, 68, 68, 0.28);
+    --danger-text: #FECACA;
+
+    --info: #60A5FA;
+    --info-bg: rgba(59, 130, 246, 0.12);
+    --info-border: rgba(59, 130, 246, 0.28);
+    --info-text: #BFDBFE;
+
+    --neutral: #9CA3AF;
+    --neutral-bg: rgba(156, 163, 175, 0.12);
+    --neutral-border: rgba(156, 163, 175, 0.24);
+    --neutral-text: #E5E7EB;
+
+    --shadow-raw-xs: 0 1px 2px rgba(0, 0, 0, 0.3);
+    --shadow-raw-sm: 0 1px 3px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.2);
+    --shadow-raw-md: 0 4px 14px -2px rgba(0, 0, 0, 0.5), 0 2px 6px -2px rgba(0, 0, 0, 0.3);
+    --shadow-raw-lg: 0 14px 28px -4px rgba(0, 0, 0, 0.6), 0 6px 12px -2px rgba(0, 0, 0, 0.4);
+    --shadow-raw-emerald: 0 4px 16px 0 rgba(16, 185, 129, 0.25);
+  }
+}
+
+/* Explicit data-theme="dark" override */
+[data-theme="dark"] {
+  --background: #0B0F0D;
+  --surface: #111714;
+  --surface-elevated: #17201B;
+  --surface-subtle: #1C2822;
+  --surface-muted: #1E2621;
+  --surface-card: #141B17;
+
+  --foreground: #F3F4F6;
+  --foreground-secondary: #D1D5DB;
+  --foreground-muted: #9CA3AF;
+
+  --primary: #10B981;
+  --primary-hover: #34D399;
+  --primary-active: #059669;
+  --primary-subtle: rgba(16, 185, 129, 0.14);
+  --primary-contrast: #0B0F0D;
+  --primary-focus: rgba(16, 185, 129, 0.35);
+
+  --border: #26352E;
+  --border-subtle: #19231E;
+  --border-hover: #364940;
+  --border-accent: rgba(16, 185, 129, 0.3);
+
+  --success: #34D399;
+  --success-bg: rgba(16, 185, 129, 0.12);
+  --success-border: rgba(16, 185, 129, 0.28);
+  --success-text: #A7F3D0;
+
+  --warning: #FBBF24;
+  --warning-bg: rgba(245, 158, 11, 0.12);
+  --warning-border: rgba(245, 158, 11, 0.28);
+  --warning-text: #FDE68A;
+
+  --danger: #F87171;
+  --danger-bg: rgba(239, 68, 68, 0.12);
+  --danger-border: rgba(239, 68, 68, 0.28);
+  --danger-text: #FECACA;
+
+  --info: #60A5FA;
+  --info-bg: rgba(59, 130, 246, 0.12);
+  --info-border: rgba(59, 130, 246, 0.28);
+  --info-text: #BFDBFE;
+
+  --neutral: #9CA3AF;
+  --neutral-bg: rgba(156, 163, 175, 0.12);
+  --neutral-border: rgba(156, 163, 175, 0.24);
+  --neutral-text: #E5E7EB;
+
+  --shadow-raw-xs: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-raw-sm: 0 1px 3px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-raw-md: 0 4px 14px -2px rgba(0, 0, 0, 0.5), 0 2px 6px -2px rgba(0, 0, 0, 0.3);
+  --shadow-raw-lg: 0 14px 28px -4px rgba(0, 0, 0, 0.6), 0 6px 12px -2px rgba(0, 0, 0, 0.4);
+  --shadow-raw-emerald: 0 4px 16px 0 rgba(16, 185, 129, 0.25);
+}
+
+/* Explicit data-theme="light" override */
+[data-theme="light"] {
+  --background: #F6FAF8;
+  --surface: #FFFFFF;
+  --surface-elevated: #FFFFFF;
+  --surface-subtle: #ECFDF5;
+  --surface-muted: #F3F4F6;
+  --surface-card: #FFFFFF;
+
+  --foreground: #111827;
+  --foreground-secondary: #4B5563;
+  --foreground-muted: #6B7280;
+
+  --primary: #059669;
+  --primary-hover: #047857;
+  --primary-active: #065F46;
+  --primary-subtle: #D1FAE5;
+  --primary-contrast: #FFFFFF;
+  --primary-focus: rgba(5, 150, 105, 0.25);
+
+  --border: #E5E7EB;
+  --border-subtle: #F3F4F6;
+  --border-hover: #D1D5DB;
+  --border-accent: #A7F3D0;
+
+  --success: #059669;
+  --success-bg: #ECFDF5;
+  --success-border: #A7F3D0;
+  --success-text: #065F46;
+
+  --warning: #D97706;
+  --warning-bg: #FFFBEB;
+  --warning-border: #FDE68A;
+  --warning-text: #92400E;
+
+  --danger: #DC2626;
+  --danger-bg: #FEF2F2;
+  --danger-border: #FECACA;
+  --danger-text: #991B1B;
+
+  --info: #2563EB;
+  --info-bg: #EFF6FF;
+  --info-border: #BFDBFE;
+  --info-text: #1E40AF;
+
+  --neutral: #6B7280;
+  --neutral-bg: #F3F4F6;
+  --neutral-border: #E5E7EB;
+  --neutral-text: #374151;
+
+  --shadow-raw-xs: 0 1px 2px rgba(17, 24, 39, 0.04);
+  --shadow-raw-sm: 0 1px 3px rgba(17, 24, 39, 0.06), 0 1px 2px rgba(17, 24, 39, 0.04);
+  --shadow-raw-md: 0 4px 12px -2px rgba(17, 24, 39, 0.08), 0 2px 6px -2px rgba(17, 24, 39, 0.04);
+  --shadow-raw-lg: 0 12px 24px -4px rgba(17, 24, 39, 0.08), 0 4px 8px -2px rgba(17, 24, 39, 0.04);
+  --shadow-raw-emerald: 0 4px 14px 0 rgba(5, 150, 105, 0.25);
+}
+
+/* Base Styles & Reset */
+html {
+  height: 100%;
+  font-size: 16px;
+  color-scheme: light dark;
+}
+
+[data-theme="light"] {
+  color-scheme: light;
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+html,
+body {
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+
+body {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  color: var(--foreground);
+  background-color: var(--background);
+  font-family: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  line-height: 1.5;
+  transition: background-color var(--transition-normal), color var(--transition-normal);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* Custom Scrollbar for Sleek Enterprise Aesthetic */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: var(--radius-full);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-border-hover);
+}
+
+/* Focus Utility */
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}

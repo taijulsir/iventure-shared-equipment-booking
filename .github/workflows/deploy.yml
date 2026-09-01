@@ -1,0 +1,68 @@
+name: Deploy to Production
+
+# Runs only after CI has finished on `main` and only deploys if CI passed —
+# never in response to a push by itself. This is the "push → main: CI →
+# production deployment" path; development is never deployed here, and
+# there is no other trigger that reaches this workflow.
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: read
+
+# Deploys are serialized, not cancelled mid-flight: interrupting a deploy
+# partway through a migration or a container recreate is worse than a
+# short queue for a second push landing while one is already running.
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy backend + frontend to the VPS
+    runs-on: ubuntu-latest
+    if: github.event.workflow_run.conclusion == 'success'
+    steps:
+      # Only to read .github/scripts/deploy-remote.sh below — nothing else
+      # from the checkout is used (the VPS has its own clone; the runner
+      # never pushes code to it, only runs commands over SSH).
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up SSH
+        env:
+          VPS_SSH_PRIVATE_KEY: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_SSH_PORT: ${{ secrets.VPS_SSH_PORT }}
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' "$VPS_SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -p "${VPS_SSH_PORT:-22}" -H "$VPS_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+
+      # The commit that actually passed CI, not necessarily main's tip by
+      # the time this job runs a few minutes later.
+      - name: Deploy over SSH
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_SSH_PORT: ${{ secrets.VPS_SSH_PORT }}
+          VPS_DEPLOY_PATH: ${{ secrets.VPS_DEPLOY_PATH }}
+          DEPLOY_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          set -euo pipefail
+          ssh -i ~/.ssh/deploy_key -p "${VPS_SSH_PORT:-22}" \
+            -o BatchMode=yes -o ConnectTimeout=15 \
+            "${VPS_USER}@${VPS_HOST}" \
+            "bash -s -- '${VPS_DEPLOY_PATH}' '${DEPLOY_SHA}'" \
+            < .github/scripts/deploy-remote.sh
+
+      - name: Clean up SSH key
+        if: always()
+        run: rm -f ~/.ssh/deploy_key

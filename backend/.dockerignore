@@ -1,0 +1,14 @@
+.git
+node_modules
+dist
+coverage
+src/generated
+*.tsbuildinfo
+.env
+.env.*
+!.env.example
+test
+*.log
+.DS_Store
+.vscode
+.idea
