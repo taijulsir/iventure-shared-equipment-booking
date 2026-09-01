@@ -29,6 +29,13 @@ async function bootstrap() {
     credentials: true,
   });
 
+  // Without this, Nest does not listen for SIGTERM/SIGINT at all, so
+  // `docker compose stop`/`restart` (and any orchestrator sending SIGTERM)
+  // kills the process before OnModuleDestroy hooks run — notably
+  // PrismaService's, which closes the database connection pool. Required
+  // for a clean shutdown in a containerized deployment.
+  app.enableShutdownHooks();
+
   await app.listen(configService.get<string>('PORT') ?? 3000);
 }
 await bootstrap();

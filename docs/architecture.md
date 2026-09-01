@@ -138,4 +138,33 @@ The architecture keeps domain boundaries clear while remaining simple enough for
 
 Infrastructure such as Redis, message queues, WebSockets, and microservices is intentionally excluded because it is not required by the current core requirements.
 
+## 11. Deployment Architecture
+
+### CI/CD
+
+GitHub Actions runs two workflows:
+
+* **CI** (`.github/workflows/ci.yml`) — on every pull request into `development` or `main`, and on every push to either branch: backend install/lint/unit-test/build, backend e2e tests and Prisma schema/migration checks against a real PostgreSQL service container, frontend install/lint/build, and the full Newman/Postman regression suite (`postman/`).
+* **Deploy** (`.github/workflows/deploy.yml`) — triggers only after CI completes successfully on `main` (a `workflow_run` dependency, not a second independent trigger), so production is never deployed from a state CI hasn't already verified, and `development` is never deployed automatically.
+
+Exact setup steps and required secrets are in `docs/deployment.md`.
+
+### Production topology
+
+Production is one VPS running the three services defined in `docker-compose.prod.yml` — PostgreSQL, the backend, and the frontend — each built from this repo's own `backend/Dockerfile` and `frontend/Dockerfile`. This is a second, production-oriented compose file rather than an extension of the root `docker-compose.yml`, which remains local-development-only (it runs PostgreSQL alone, for use with `npm run start:dev` / `next dev`).
+
+The backend and frontend containers publish only to `127.0.0.1` on the VPS, never to a public interface. A reverse proxy already running on the VPS (Nginx, Caddy, or similar — outside this repo's scope, since it is host-level infrastructure rather than part of the application stack) is expected to terminate TLS and proxy public traffic to those loopback ports. This repo does not manage certificates or reverse-proxy configuration.
+
+### Secrets
+
+GitHub Actions holds only what is needed to reach the VPS over SSH (host, user, private key, deploy path — see `docs/deployment.md`). Every application secret — database credentials, `JWT_SECRET`, the frontend's build-time API base URL, the one-time SuperAdmin bootstrap credentials — lives only in a git-ignored `.env.production` file on the VPS itself (`.env.production.example` documents its shape). GitHub Actions never creates, reads, or transmits that file; the deploy workflow's remote script references it by path on the VPS, the same way an operator running the stack by hand would.
+
+### Deployment sequence and migrations
+
+The deploy workflow checks out the exact commit that passed CI on the VPS, builds new images, then runs `prisma migrate deploy` once via a one-off container (`docker compose run --rm backend ...`) against the newly built backend image — before recreating the running backend/frontend containers. This applies pending migrations while the previous containers are still serving traffic, then cuts over. A post-deploy check polls the backend's `GET /health` endpoint and the frontend's `/` route; the workflow fails (rather than reporting success) if either does not come back healthy.
+
+### Graceful shutdown
+
+`main.ts` calls `app.enableShutdownHooks()` so that a container-level SIGTERM (e.g. `docker compose up -d` recreating the container, or `docker compose stop`) runs NestJS's `OnModuleDestroy` hooks — notably `PrismaService` closing its database connection pool — instead of the process being killed before it can do so.
+
 ```

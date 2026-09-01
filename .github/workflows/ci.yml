@@ -1,0 +1,222 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [development, main]
+  push:
+    branches: [development, main]
+
+# Read-only by default: no job in this workflow needs to write to the
+# repository, comment on PRs, or publish anything — just check out code and
+# run the project's own scripts.
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: "22"
+
+jobs:
+  backend:
+    name: Backend (lint, unit tests, build)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: backend
+        run: npm ci
+
+      - name: Lint
+        working-directory: backend
+        run: npm run lint
+
+      - name: Unit tests
+        working-directory: backend
+        run: npm test
+
+      - name: Build
+        working-directory: backend
+        run: npm run build
+
+  frontend:
+    name: Frontend (lint, build)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Lint
+        working-directory: frontend
+        run: npm run lint
+
+      - name: Build
+        working-directory: frontend
+        # Not a secret (see frontend/.env.example) — a placeholder matching
+        # local dev is enough for a build-correctness check; the real value
+        # is supplied at image-build time in production (see
+        # docker-compose.prod.yml).
+        env:
+          NEXT_PUBLIC_API_BASE_URL: http://localhost:3000
+        run: npm run build
+
+  backend-e2e:
+    name: Backend (Prisma checks + e2e against PostgreSQL)
+    needs: backend
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: iventure
+          POSTGRES_USER: iventure
+          POSTGRES_PASSWORD: ci_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U iventure -d iventure"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: "postgresql://iventure:ci_password@localhost:5432/iventure?schema=public"
+      # AuthModule throws on startup without this (no fallback, unlike
+      # JWT_EXPIRES_IN/COOKIE_SAME_SITE below) — required for the Nest
+      # application to boot at all, e2e tests included.
+      JWT_SECRET: ci-only-secret-not-used-anywhere-real
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: backend
+        run: npm ci
+
+      - name: Validate Prisma schema
+        working-directory: backend
+        run: npx prisma validate
+
+      - name: Apply migrations
+        working-directory: backend
+        run: npx prisma migrate deploy
+
+      - name: Confirm no migration drift
+        working-directory: backend
+        run: npx prisma migrate status
+
+      - name: e2e tests
+        working-directory: backend
+        run: npm run test:e2e
+
+  newman:
+    name: Postman/Newman API regression
+    needs: [backend-e2e, frontend]
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: iventure
+          POSTGRES_USER: iventure
+          POSTGRES_PASSWORD: ci_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U iventure -d iventure"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: "postgresql://iventure:ci_password@localhost:5432/iventure?schema=public"
+      PORT: "3000"
+      NODE_ENV: development
+      JWT_SECRET: ci-only-secret-not-used-anywhere-real
+      JWT_EXPIRES_IN: 1h
+      COOKIE_SAME_SITE: lax
+      FRONTEND_ORIGIN: http://localhost:3001
+      # Matches postman/environments/iventure-local.postman_environment.json's
+      # committed defaults exactly, so the collection needs no overrides.
+      SUPERADMIN_EMAIL: superadmin@iventure.local
+      SUPERADMIN_PASSWORD: PostmanSuperAdmin!2026
+      SUPERADMIN_NAME: Super Admin
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: backend
+        run: npm ci
+
+      - name: Apply migrations
+        working-directory: backend
+        run: npx prisma migrate deploy
+
+      - name: Build
+        working-directory: backend
+        run: npm run build
+
+      - name: Seed Administrator + SuperAdmin fixtures
+        working-directory: backend
+        run: |
+          node dist/scripts/seed-admin.js
+          node dist/scripts/seed-superadmin.js
+
+      - name: Start backend
+        working-directory: backend
+        run: |
+          nohup node dist/main.js > backend.log 2>&1 &
+          for i in $(seq 1 30); do
+            if curl -fsS http://localhost:3000/health >/dev/null 2>&1; then
+              echo "backend is up"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "backend did not become healthy in time" >&2
+          cat backend.log >&2
+          exit 1
+
+      - name: Run Newman collection
+        working-directory: backend
+        run: npm run test:api
+
+      - name: Backend logs
+        if: always()
+        working-directory: backend
+        run: cat backend.log || true
